@@ -331,7 +331,11 @@
     <div id="targetsTab" class="tab-panel">
         <section class="averages-panel">
             <h1 class="power-rankings-title" id="targetsTitle">🎯 Recruit Targets</h1>
-            <p class="leaderboard-hint power-rankings-hint">A 35-recruit target board built from your current roster, depth chart, and NIL situation &mdash; not just a generic top-recruits list. Every recruit is scored on positional need (factoring in graduating Juniors/Seniors), fit vs. your current players at that position, NIL cost-effectiveness, how interested they actually are in your program, and home-state/pipeline ties. Fullbacks, Kickers, and Punters are excluded from the board entirely.</p>
+            <p class="leaderboard-hint power-rankings-hint">A 35-recruit target board built from your current roster, depth chart, and NIL situation &mdash; not just a generic top-recruits list. Every recruit is scored on positional need (factoring in graduating Juniors/Seniors), fit vs. your current players at that position, NIL cost-effectiveness, how interested they actually are in your program, and home-state/pipeline ties, plus your Coordinator Settings (Team Direction and Position Priorities). Fullbacks, Kickers, and Punters are excluded from the board entirely.</p>
+            <div class="settings-save-row">
+                <button id="refreshTargetsBtn" class="refresh-btn">🔄 Refresh Recruit Targets</button>
+                <span id="refreshTargetsStatus" class="upload-status"></span>
+            </div>
 
             <details class="info-box">
                 <summary>How this works &amp; why it matters</summary>
@@ -356,14 +360,17 @@
 
                     <h4>The three tiers use different formulas on purpose</h4>
                     <ul>
-                        <li><strong>Day One Starters</strong> (top 5) &mdash; must be 4-5&#9733; or a top-20 national position rank to even qualify. Talent and need dominate the score; these need to be immediate, obvious upgrades.</li>
-                        <li><strong>Program Movers</strong> (top 10) &mdash; need, talent, NIL value, and interest are balanced fairly evenly. These are the realistic 1-2 year starters.</li>
-                        <li><strong>Foundational Players</strong> (top 20) &mdash; NIL value and need are weighted heaviest, talent least. These are the affordable, longer-runway picks that keep the program's depth healthy 2-3 years out.</li>
+                        <li><strong>Day One Starters</strong> &mdash; must be 4-5&#9733; or a top-20 national position rank to even qualify. Talent and need dominate the score; these need to be immediate, obvious upgrades.</li>
+                        <li><strong>Program Movers</strong> &mdash; need, talent, NIL value, and interest are balanced fairly evenly. These are the realistic 1-2 year starters.</li>
+                        <li><strong>Foundational Players</strong> &mdash; NIL value and need are weighted heaviest, talent least. These are the affordable, longer-runway picks that keep the program's depth healthy 2-3 years out.</li>
                     </ul>
                     <p>Each tier also caps how many recruits can share the same position (1 for Day One, 2 for Program Movers, 3 for Foundational), so one gaping roster hole can't flood the whole board with recruits at a single spot.</p>
 
+                    <h4>Coordinator Settings shape this board</h4>
+                    <p>Your <strong>Team Direction</strong> setting changes how many of the 35 total slots go to each tier &mdash; Rebuild shifts most of the board toward Foundational Players, Compete Now shifts it toward Day One Starters and Program Movers, Maintain uses the even split above. It also gives each tier's own formula a small nudge: Rebuild leans a bit further from raw talent and toward long-term fit (NIL value / need); Compete Now leans the other way. Your <strong>Position Priorities</strong> add a small scoring bonus for recruits who excel (for their position) at your two selected ratings, a small bonus for matching one of your preferred archetypes, and a small penalty for matching the archetype you're avoiding. All of these are gentle nudges on top of the core scoring above &mdash; they break ties and reorder close calls, but never exclude a recruit outright. Hit "Refresh Recruit Targets" (here or on the Coordinator Settings tab) any time you change a setting to see the board update.</p>
+
                     <h4>Why it matters</h4>
-                    <p>A generic "top 35 recruits" list is the same for every team in the league &mdash; it doesn't know your roster is thin at Safety, or that your starting Center is a graduating Senior, or that your program has a real pipeline in a specific state. This board does. Work it top to bottom: Day One Starters first (your most urgent, highest-confidence needs), then Program Movers, then Foundational Players to round out the class affordably.</p>
+                    <p>A generic "top 35 recruits" list is the same for every team in the league &mdash; it doesn't know your roster is thin at Safety, or that your starting Center is a graduating Senior, or that your program has a real pipeline in a specific state, or that you specifically want a Pass Protector at Right Guard instead of an Agile one. This board does. Work it top to bottom: Day One Starters first (your most urgent, highest-confidence needs), then Program Movers, then Foundational Players to round out the class affordably.</p>
                 </div>
             </details>
 
@@ -378,14 +385,14 @@
     <div id="settingsTab" class="tab-panel">
         <section class="averages-panel">
             <h1 class="power-rankings-title">⚙️ Coordinator Settings</h1>
-            <p class="leaderboard-hint power-rankings-hint">Tell the app what you're looking for when building your team. These preferences are saved in this browser and will (in a future update) dynamically shape the Recruit Targets board &mdash; for now, this tab just captures your preferences.</p>
+            <p class="leaderboard-hint power-rankings-hint">Tell the app what you're looking for when building your team. These preferences are saved in this browser and directly shape the Recruit Targets board. Team Direction and Position Priorities are both wired in; the Gem/Bust toggles below are captured for a future update but don't affect scoring yet. Changes here don't take effect on the Recruit Targets board until you hit "Refresh Recruit Targets."</p>
 
             <h2>Team Direction</h2>
-            <p class="leaderboard-hint">This shapes the overall balance of the Recruit Targets board once it's wired in &mdash; how much weight goes toward long-term foundation building vs. immediate, win-now upgrades.</p>
+            <p class="leaderboard-hint">Changes two things on the Recruit Targets board: how many of the 35 total slots go to each tier (Rebuild leans hardest into Foundational Players, Compete Now leans hardest into Day One Starters and Program Movers, Maintain is the even split), and a small nudge to each tier's own formula, away from raw talent and toward long-term fit (NIL value / need) for Rebuild, or the reverse for Compete Now.</p>
             <div id="teamDirectionCards" class="direction-cards"></div>
 
             <h2>Evaluation Preferences</h2>
-            <p class="leaderboard-hint">The game's own scouting sometimes flags a recruit as a "Gem" (likely to outperform their rating) or a "Bust" (likely to underperform). These two are independent &mdash; you can hide the badge from view while still letting it influence ratings, or the reverse.</p>
+            <p class="leaderboard-hint">The game's own scouting sometimes flags a recruit as a "Gem" (likely to outperform their rating) or a "Bust" (likely to underperform). These two are independent &mdash; you can hide the badge from view while still letting it influence ratings, or the reverse. (Not yet wired into Recruit Targets scoring.)</p>
             <div class="settings-toggle-row">
                 <label class="toggle-switch-label" for="hideGemBustToggle">
                     <span class="toggle-switch-text">Hide Gem/Bust Status</span>
@@ -400,7 +407,7 @@
             </div>
 
             <h2>Position Priorities</h2>
-            <p class="leaderboard-hint">For every position except Fullback, Kicker, and Punter: pick the two ratings that matter most to you, up to two archetypes you'd prefer, and one archetype you'd rather steer away from. Archetypes are pulled directly from the game's own per-position player-type system.</p>
+            <p class="leaderboard-hint">For every position except Fullback, Kicker, and Punter: pick the two ratings that matter most to you, up to two archetypes you'd prefer, and one archetype you'd rather steer away from. Archetypes are pulled directly from the game's own per-position player-type system. On the Recruit Targets board, a recruit gets a small scoring bonus for excelling (relative to others at their position) in your two selected ratings, a small bonus for matching either preferred archetype, and a small penalty for matching the archetype to avoid. None of this ever removes a recruit from consideration outright &mdash; a great overall fit for your team still shows up even if their archetype isn't one you picked.</p>
             <div class="table-wrap">
                 <table id="positionPrioritiesTable">
                     <thead>
@@ -419,6 +426,7 @@
 
             <div class="settings-save-row">
                 <button id="saveSettingsBtn" class="refresh-btn">💾 Save Settings</button>
+                <button id="refreshTargetsFromSettingsBtn" class="refresh-btn">🔄 Refresh Recruit Targets</button>
                 <button id="resetSettingsBtn" class="link-btn">Reset to defaults</button>
                 <span id="settingsSaveStatus" class="upload-status"></span>
             </div>

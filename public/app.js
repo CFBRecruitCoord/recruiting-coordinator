@@ -925,6 +925,31 @@
         return { score: 0, label: null };
     }
 
+    // ---- Coordinator Settings -> Recruit Targets wiring ----
+    // Team Direction changes two things at once: (1) how many of the 35
+    // total board slots go to each tier, and (2) a small nudge to each
+    // tier's own formula, shifting weight away from raw talent and toward
+    // whichever term represents "long-term fit" in that formula (NIL for
+    // Program Movers/Foundational; Need for Day One, which has no NIL term
+    // at all). Maintain is the original, untouched baseline. All three
+    // directions still total exactly 35 recruits.
+    const TEAM_DIRECTION_TIER_SIZES = {
+        rebuild: { dayOne: 3, programMovers: 8, foundational: 24 },
+        maintain: { dayOne: 5, programMovers: 10, foundational: 20 },
+        competeNow: { dayOne: 9, programMovers: 12, foundational: 14 }
+    };
+    const TEAM_DIRECTION_WEIGHT_NUDGE = { rebuild: 0.05, maintain: 0, competeNow: -0.05 };
+
+    // Position Priorities adjustments are intentionally small relative to
+    // the core scoring above (need/talent/NIL routinely swing candidates by
+    // tens of points) - enough to break ties and nudge the order, never
+    // enough by themselves to turn a poor team-fit into a top pick or push
+    // a great team-fit off the board. Per the explicit product requirement,
+    // these NEVER exclude a recruit outright - only add or subtract points.
+    const ATTRIBUTE_BONUS_MAX = 6; // summed across up to 2 selected attributes, so +/-3 each
+    const ARCHETYPE_BONUS = 5;     // matches one of the up-to-2 preferred archetypes
+    const ARCHETYPE_PENALTY = 5;   // matches the one archetype flagged to avoid
+
     function computeRecruitTargetCandidates() {
         if (!allRecruits.length || !userTeamContext) return [];
 
@@ -937,6 +962,29 @@
         const talentPercentiles = ordinalPercentiles(eligibleRecruits, r => r.rawRating);
         const nilPercentiles = ordinalPercentiles(eligibleRecruits, r => r.nilAdjustment);
 
+        // Position-scoped attribute percentiles, built lazily per position+
+        // attribute actually selected as a priority - "excels at Strength"
+        // for a Guard is judged against other eligible Guards, not the whole
+        // recruit pool. Cached as recruit-object -> percentile maps so the
+        // lookup is correct regardless of iteration order.
+        const recruitsByPosition = {};
+        eligibleRecruits.forEach(r => (recruitsByPosition[r.position] = recruitsByPosition[r.position] || []).push(r));
+        const attrPercentileCache = {};
+        function attrPercentileMapFor(pos, attrKey) {
+            const cacheKey = pos + '|' + attrKey;
+            if (!attrPercentileCache[cacheKey]) {
+                const list = recruitsByPosition[pos] || [];
+                const percentiles = ordinalPercentiles(list, r => r[attrKey] || 0);
+                const map = new Map();
+                list.forEach((r, idx) => map.set(r, percentiles[idx]));
+                attrPercentileCache[cacheKey] = map;
+            }
+            return attrPercentileCache[cacheKey];
+        }
+
+        const direction = coordinatorSettings.teamDirection || 'maintain';
+        const nudge = TEAM_DIRECTION_WEIGHT_NUDGE[direction] || 0;
+
         return eligibleRecruits.map((r, i) => {
             const need = positionNeeds.get(r.position) || { needScore: 0 };
             const geo = geoFitScore(r);
@@ -944,6 +992,28 @@
             const gemAdj = r.gem === 'GEM' ? 8 : (r.gem === 'BUST' ? -8 : 0);
             const talentPercentile = talentPercentiles[i];
             const nilPercentile = nilPercentiles[i];
+
+            // --- Position Priorities: small additive bonus/penalty only ---
+            const posSettings = coordinatorSettings.positions[r.position];
+            let attributeBonus = 0;
+            let archetypeAdj = 0;
+            if (posSettings) {
+                [posSettings.attr1, posSettings.attr2].forEach(attrKey => {
+                    if (!attrKey) return;
+                    const pct = attrPercentileMapFor(r.position, attrKey).get(r);
+                    if (pct == null) return;
+                    // Centered on the position's own 50th percentile, so a
+                    // merely-average recruit at that attribute gets ~0.
+                    attributeBonus += ((pct - 50) / 50) * (ATTRIBUTE_BONUS_MAX / 2);
+                });
+                if (r.archetype && (r.archetype === posSettings.archetype1 || r.archetype === posSettings.archetype2)) {
+                    archetypeAdj += ARCHETYPE_BONUS;
+                }
+                if (r.archetype && posSettings.avoidArchetype && r.archetype === posSettings.avoidArchetype) {
+                    archetypeAdj -= ARCHETYPE_PENALTY;
+                }
+            }
+            const settingsAdj = attributeBonus + archetypeAdj;
 
             return {
                 recruit: r,
@@ -954,14 +1024,16 @@
                 interestScore,
                 geoScore: geo.score,
                 geoLabel: geo.label,
+                settingsAdj,
                 // Day One: talent and need dominate - this recruit has to be
-                // both great and walking into a real opening.
-                dayOneScore: 0.45 * talentPercentile + 0.30 * need.needScore + 0.15 * interestScore + 0.10 * geo.score + gemAdj,
+                // both great and walking into a real opening. (No NIL term to
+                // nudge here, so Team Direction shifts talent <-> need instead.)
+                dayOneScore: (0.45 - nudge) * talentPercentile + (0.30 + nudge) * need.needScore + 0.15 * interestScore + 0.10 * geo.score + gemAdj + settingsAdj,
                 // Program Movers: need, talent, NIL value, and interest balanced.
-                programMoverScore: 0.30 * need.needScore + 0.25 * talentPercentile + 0.20 * nilPercentile + 0.15 * interestScore + 0.10 * geo.score + gemAdj,
+                programMoverScore: 0.30 * need.needScore + (0.25 - nudge) * talentPercentile + (0.20 + nudge) * nilPercentile + 0.15 * interestScore + 0.10 * geo.score + gemAdj + settingsAdj,
                 // Foundational: NIL value and need dominate over raw
                 // immediate talent - the affordable, long-term roster builders.
-                foundationalScore: 0.30 * nilPercentile + 0.25 * need.needScore + 0.20 * talentPercentile + 0.15 * interestScore + 0.10 * geo.score + gemAdj
+                foundationalScore: 0.25 * need.needScore + (0.20 - nudge) * talentPercentile + (0.30 + nudge) * nilPercentile + 0.15 * interestScore + 0.10 * geo.score + gemAdj + settingsAdj
             };
         });
     }
@@ -1002,21 +1074,22 @@
         const candidates = computeRecruitTargetCandidates();
         if (!candidates.length) return { dayOne: [], programMovers: [], foundational: [] };
 
+        const tierSizes = TEAM_DIRECTION_TIER_SIZES[coordinatorSettings.teamDirection] || TEAM_DIRECTION_TIER_SIZES.maintain;
         const used = new Set();
 
         // Day One Starters must be blue-chip caliber (4-5 stars, or a top-20
         // national rank at their position) - talent and need drive the order.
         const dayOneEligible = candidates.filter(c => c.recruit.starsNum >= 4 || c.recruit.posRank <= 20);
-        const dayOne = selectTopWithPositionCap(dayOneEligible, 'dayOneScore', 5, 1);
+        const dayOne = selectTopWithPositionCap(dayOneEligible, 'dayOneScore', tierSizes.dayOne, 1);
         dayOne.forEach(c => used.add(c.recruit.rank));
 
         const programMovers = selectTopWithPositionCap(
-            candidates.filter(c => !used.has(c.recruit.rank)), 'programMoverScore', 10, 2
+            candidates.filter(c => !used.has(c.recruit.rank)), 'programMoverScore', tierSizes.programMovers, 2
         );
         programMovers.forEach(c => used.add(c.recruit.rank));
 
         const foundational = selectTopWithPositionCap(
-            candidates.filter(c => !used.has(c.recruit.rank)), 'foundationalScore', 20, 3
+            candidates.filter(c => !used.has(c.recruit.rank)), 'foundationalScore', tierSizes.foundational, 3
         );
 
         return { dayOne, programMovers, foundational };
@@ -1103,20 +1176,21 @@
         renderTeamContextSummary();
 
         const { dayOne, programMovers, foundational } = assignRecruitTiers();
+        const tierSizes = TEAM_DIRECTION_TIER_SIZES[coordinatorSettings.teamDirection] || TEAM_DIRECTION_TIER_SIZES.maintain;
 
         const sections = [
             {
-                title: '🌱 Foundational Players', count: '20',
+                title: '🌱 Foundational Players', count: String(tierSizes.foundational),
                 hint: 'Inexpensive from an NIL perspective, a good fit for a real position need, and projected to become starters within 2-3 seasons — the picks that keep the program going.',
                 candidates: foundational
             },
             {
-                title: '📈 Program Movers', count: '10',
+                title: '📈 Program Movers', count: String(tierSizes.programMovers),
                 hint: 'Positional needs and clear upgrades over the players currently there, NIL budget-friendly, and projected to start within a year or two.',
                 candidates: programMovers
             },
             {
-                title: '⭐ Day One Starters', count: '5',
+                title: '⭐ Day One Starters', count: String(tierSizes.dayOne),
                 hint: 'Immediate contributors who should start or play meaningful snaps right away, significantly improving their position group on the current roster.',
                 candidates: dayOne
             }
@@ -1134,6 +1208,24 @@
             </div>
         `).join('');
     }
+
+    // Shared by the "Refresh Recruit Targets" button on both this tab and
+    // the Coordinator Settings tab - saves whatever's currently selected
+    // (even if the user hasn't hit "Save Settings" yet) so a reload right
+    // after previewing doesn't lose it, then recomputes the board in place.
+    function refreshRecruitTargetsFromSettings(statusEl) {
+        saveSettingsToStorage(coordinatorSettings);
+        renderRecruitTargets();
+        if (statusEl) {
+            statusEl.textContent = 'Recruit Targets refreshed.';
+            statusEl.className = 'upload-status success';
+        }
+    }
+
+    const refreshTargetsBtn = document.getElementById('refreshTargetsBtn');
+    if (refreshTargetsBtn) refreshTargetsBtn.addEventListener('click', () => {
+        refreshRecruitTargetsFromSettings(document.getElementById('refreshTargetsStatus'));
+    });
 
     // ================= COORDINATOR SETTINGS TAB =================
     // Saved in this browser only (not tied to an account) for now - a
@@ -1316,6 +1408,7 @@
 
         const saveBtn = document.getElementById('saveSettingsBtn');
         const resetBtn = document.getElementById('resetSettingsBtn');
+        const refreshBtn = document.getElementById('refreshTargetsFromSettingsBtn');
         const status = document.getElementById('settingsSaveStatus');
 
         if (saveBtn) saveBtn.addEventListener('click', () => {
@@ -1332,6 +1425,8 @@
             status.textContent = '';
             status.className = 'upload-status';
         });
+
+        if (refreshBtn) refreshBtn.addEventListener('click', () => refreshRecruitTargetsFromSettings(status));
     }
 
     initSettingsTab();
