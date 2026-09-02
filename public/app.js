@@ -1135,6 +1135,189 @@
         `).join('');
     }
 
+    // ================= COORDINATOR SETTINGS TAB =================
+    // Saved in this browser only (not tied to an account) for now - a
+    // simple, correct starting point that doesn't require any backend
+    // changes. Nothing here affects Recruit Targets yet; that wiring is a
+    // separate follow-up.
+    const SETTINGS_STORAGE_KEY = 'rc_coordinator_settings_v1';
+
+    const TEAM_DIRECTIONS = [
+        {
+            key: 'rebuild', label: 'Rebuild',
+            desc: 'Weighted heavier toward Foundational prospects. Build a good core for the program and find players who’ll be starting in 2-3 seasons, not right away.'
+        },
+        {
+            key: 'maintain', label: 'Maintain',
+            desc: 'Keep things going. A fair mix of Foundational and Program Mover players — balance long-term depth with realistic 1-2 year contributors.'
+        },
+        {
+            key: 'competeNow', label: 'Compete Now',
+            desc: 'All in on a championship. Prioritize players who are ready to start immediately and make the roster better today.'
+        }
+    ];
+
+    // The real ratings available on rostered players/recruits throughout
+    // this app - the same set used everywhere else (Class Landscape's Key
+    // Rating columns, Recruit Targets' talent scoring, etc.).
+    const ATTRIBUTE_OPTIONS = [
+        ['speed', 'Speed'], ['strength', 'Strength'], ['awareness', 'Awareness'],
+        ['agility', 'Agility'], ['acceleration', 'Acceleration'], ['jumping', 'Jumping'],
+        ['throwPower', 'Throw Power'], ['throwAccuracy', 'Throw Accuracy'], ['catching', 'Catching'],
+        ['tackle', 'Tackle'], ['manCoverage', 'Man Coverage'], ['runBlock', 'Run Block'], ['passBlock', 'Pass Block']
+    ];
+
+    // Sensible starting defaults per position - the same two ratings already
+    // used as each position's "key stats" elsewhere in the app.
+    const DEFAULT_POSITION_ATTRS = {
+        QB: ['awareness', 'throwPower'], HB: ['speed', 'agility'], WR: ['speed', 'catching'], TE: ['catching', 'runBlock'],
+        LT: ['strength', 'passBlock'], LG: ['strength', 'passBlock'], C: ['strength', 'passBlock'],
+        RG: ['strength', 'passBlock'], RT: ['strength', 'passBlock'],
+        LE: ['strength', 'tackle'], RE: ['strength', 'tackle'], DT: ['strength', 'tackle'],
+        LOLB: ['speed', 'tackle'], MLB: ['speed', 'tackle'], ROLB: ['speed', 'tackle'],
+        CB: ['speed', 'manCoverage'], FS: ['speed', 'manCoverage'], SS: ['speed', 'manCoverage']
+    };
+
+    // Real archetypes pulled directly from the save file's own per-player
+    // PlayerType field (verified against actual rostered players) - not
+    // invented values. Grouped positions that share the same underlying
+    // archetype family (LT/RT, LG/RG, LE/RE, LOLB/ROLB, FS/SS) use identical
+    // lists since that's exactly what the game itself does.
+    const OT_ARCHETYPES = [['OT_Agile', 'Agile'], ['OT_WellRounded', 'Well Rounded'], ['OT_PassProtector', 'Pass Protector'], ['OT_Power', 'Power']];
+    const G_ARCHETYPES = [['G_Power', 'Power'], ['G_WellRounded', 'Well Rounded'], ['G_Agile', 'Agile'], ['G_PassProtector', 'Pass Protector']];
+    const DE_ARCHETYPES = [['DE_PurePower', 'Pure Power'], ['DE_SmallerSpeedRusher', 'Smaller Speed Rusher'], ['DE_PowerRusher', 'Power Rusher'], ['DE_RunStopper', 'Run Stopper']];
+    const OLB_ARCHETYPES = [['OLB_PassCoverage', 'Pass Coverage'], ['OLB_RunStopper', 'Run Stopper'], ['OLB_PowerRusher', 'Power Rusher']];
+    const S_ARCHETYPES = [['S_RunSupport', 'Run Support'], ['S_Hybrid', 'Hybrid'], ['S_Zone', 'Zone']];
+
+    const ARCHETYPES_BY_POSITION = {
+        QB: [['QB_PureScrambler', 'Pure Scrambler'], ['QB_Scrambler', 'Scrambler'], ['QB_FieldGeneral', 'Field General'], ['QB_Improviser', 'Improviser']],
+        HB: [['HB_ReceivingBack', 'Receiving Back'], ['HB_ElusiveBack', 'Elusive Back'], ['HB_PowerBlocking', 'Power Blocking'], ['HB_ElusivePower', 'Elusive Power'], ['HB_PowerBack', 'Power Back'], ['HB_PowerReceiving', 'Power Receiving']],
+        WR: [['WR_GadgetReceiver', 'Gadget Receiver'], ['WR_Physical', 'Physical'], ['WR_PhysicalBlocker', 'Physical Blocker'], ['WR_ShiftyRouteRunner', 'Shifty Route Runner'], ['WR_PhysicalRouteRunner', 'Physical Route Runner'], ['WR_Playmaker', 'Playmaker'], ['WR_DeepThreat', 'Deep Threat']],
+        TE: [['TE_PhysicalRouteRunner', 'Physical Route Runner'], ['TE_VerticalThreat', 'Vertical Threat'], ['TE_Blocking', 'Blocking'], ['TE_PossessionBlocking', 'Possession Blocking'], ['TE_Possession', 'Possession']],
+        LT: OT_ARCHETYPES, RT: OT_ARCHETYPES,
+        LG: G_ARCHETYPES, RG: G_ARCHETYPES,
+        C: [['C_Power', 'Power'], ['C_PassProtector', 'Pass Protector'], ['C_Agile', 'Agile'], ['C_WellRounded', 'Well Rounded']],
+        LE: DE_ARCHETYPES, RE: DE_ARCHETYPES,
+        DT: [['DT_NoseTackle', 'Nose Tackle'], ['DT_SpeedRusher', 'Speed Rusher'], ['DT_PurePower', 'Pure Power'], ['DT_PowerRusher', 'Power Rusher']],
+        LOLB: OLB_ARCHETYPES, ROLB: OLB_ARCHETYPES,
+        MLB: [['MLB_RunStopper', 'Run Stopper'], ['MLB_FieldGeneral', 'Field General'], ['MLB_PassCoverage', 'Pass Coverage']],
+        CB: [['CB_MantoMan', 'Man to Man'], ['CB_HybridCorner', 'Hybrid Corner'], ['CB_Slot', 'Slot'], ['CB_Zone', 'Zone']],
+        FS: S_ARCHETYPES, SS: S_ARCHETYPES
+    };
+
+    function getDefaultSettings() {
+        const positions = {};
+        ALL_RAW_POSITIONS.forEach(pos => {
+            positions[pos] = {
+                attr1: DEFAULT_POSITION_ATTRS[pos][0],
+                attr2: DEFAULT_POSITION_ATTRS[pos][1],
+                archetype1: '',
+                archetype2: '',
+                avoidArchetype: ''
+            };
+        });
+        return { teamDirection: 'maintain', positions };
+    }
+
+    function loadSettings() {
+        try {
+            const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
+            if (!raw) return getDefaultSettings();
+            const parsed = JSON.parse(raw);
+            // Merge over defaults so a future position/field addition doesn't
+            // break on an older saved settings blob.
+            const defaults = getDefaultSettings();
+            return {
+                teamDirection: parsed.teamDirection || defaults.teamDirection,
+                positions: Object.assign({}, defaults.positions, parsed.positions)
+            };
+        } catch (e) {
+            return getDefaultSettings();
+        }
+    }
+
+    function saveSettingsToStorage(settings) {
+        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    }
+
+    let coordinatorSettings = loadSettings();
+
+    function renderTeamDirectionCards() {
+        const container = document.getElementById('teamDirectionCards');
+        if (!container) return;
+        container.innerHTML = TEAM_DIRECTIONS.map(d => `
+            <div class="direction-card ${coordinatorSettings.teamDirection === d.key ? 'selected' : ''}" data-direction="${d.key}">
+                <div class="direction-card-title"><span class="direction-card-check"></span> ${d.label}</div>
+                <div class="direction-card-desc">${d.desc}</div>
+            </div>
+        `).join('');
+
+        container.querySelectorAll('.direction-card').forEach(card => {
+            card.addEventListener('click', () => {
+                coordinatorSettings.teamDirection = card.dataset.direction;
+                renderTeamDirectionCards();
+            });
+        });
+    }
+
+    function optionsHtml(options, selectedValue, placeholder) {
+        const placeholderOpt = placeholder ? `<option value="">${placeholder}</option>` : '';
+        return placeholderOpt + options.map(([value, label]) =>
+            `<option value="${value}" ${value === selectedValue ? 'selected' : ''}>${label}</option>`
+        ).join('');
+    }
+
+    function renderPositionPrioritiesTable() {
+        const body = document.getElementById('positionPrioritiesBody');
+        if (!body) return;
+
+        body.innerHTML = ALL_RAW_POSITIONS.map(pos => {
+            const settings = coordinatorSettings.positions[pos];
+            const archetypes = ARCHETYPES_BY_POSITION[pos] || [];
+            return `
+                <tr>
+                    <td class="name-cell">${POSITION_FULL_NAMES[pos] || pos}</td>
+                    <td><select data-pos="${pos}" data-field="attr1">${optionsHtml(ATTRIBUTE_OPTIONS, settings.attr1)}</select></td>
+                    <td><select data-pos="${pos}" data-field="attr2">${optionsHtml(ATTRIBUTE_OPTIONS, settings.attr2)}</select></td>
+                    <td><select data-pos="${pos}" data-field="archetype1">${optionsHtml(archetypes, settings.archetype1, 'None')}</select></td>
+                    <td><select data-pos="${pos}" data-field="archetype2">${optionsHtml(archetypes, settings.archetype2, 'None')}</select></td>
+                    <td><select data-pos="${pos}" data-field="avoidArchetype">${optionsHtml(archetypes, settings.avoidArchetype, 'None')}</select></td>
+                </tr>
+            `;
+        }).join('');
+
+        body.querySelectorAll('select').forEach(select => {
+            select.addEventListener('change', () => {
+                coordinatorSettings.positions[select.dataset.pos][select.dataset.field] = select.value;
+            });
+        });
+    }
+
+    function initSettingsTab() {
+        renderTeamDirectionCards();
+        renderPositionPrioritiesTable();
+
+        const saveBtn = document.getElementById('saveSettingsBtn');
+        const resetBtn = document.getElementById('resetSettingsBtn');
+        const status = document.getElementById('settingsSaveStatus');
+
+        if (saveBtn) saveBtn.addEventListener('click', () => {
+            saveSettingsToStorage(coordinatorSettings);
+            status.textContent = 'Saved.';
+            status.className = 'upload-status success';
+        });
+
+        if (resetBtn) resetBtn.addEventListener('click', () => {
+            coordinatorSettings = getDefaultSettings();
+            renderTeamDirectionCards();
+            renderPositionPrioritiesTable();
+            status.textContent = '';
+            status.className = 'upload-status';
+        });
+    }
+
+    initSettingsTab();
+
     // ---- Filter dropdown population ----
     function populateFilterOptions() {
         const positions = [...new Set(allRecruits.map(r => r.position))].sort();

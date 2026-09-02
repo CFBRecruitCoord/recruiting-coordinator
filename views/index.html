@@ -24,6 +24,7 @@
         <button class="tab-btn" data-tab="averagesTab">Class Landscape</button>
         <button class="tab-btn" data-tab="nationalTab">National Landscape</button>
         <button class="tab-btn" data-tab="targetsTab">Recruit Targets</button>
+        <button class="tab-btn" data-tab="settingsTab">Coordinator Settings</button>
         <button class="tab-btn hidden" data-tab="adminTab" id="adminTabBtn">Admin</button>
     </nav>
 
@@ -370,6 +371,41 @@
 
             <div id="targetsContainer">
                 <p class="empty-row">Load a save file in the Recruit Explorer tab to see recruit targets.</p>
+            </div>
+        </section>
+    </div>
+
+    <div id="settingsTab" class="tab-panel">
+        <section class="averages-panel">
+            <h1 class="power-rankings-title">⚙️ Coordinator Settings</h1>
+            <p class="leaderboard-hint power-rankings-hint">Tell the app what you're looking for when building your team. These preferences are saved in this browser and will (in a future update) dynamically shape the Recruit Targets board &mdash; for now, this tab just captures your preferences.</p>
+
+            <h2>Team Direction</h2>
+            <p class="leaderboard-hint">This shapes the overall balance of the Recruit Targets board once it's wired in &mdash; how much weight goes toward long-term foundation building vs. immediate, win-now upgrades.</p>
+            <div id="teamDirectionCards" class="direction-cards"></div>
+
+            <h2>Position Priorities</h2>
+            <p class="leaderboard-hint">For every position except Fullback, Kicker, and Punter: pick the two ratings that matter most to you, up to two archetypes you'd prefer, and one archetype you'd rather steer away from. Archetypes are pulled directly from the game's own per-position player-type system.</p>
+            <div class="table-wrap">
+                <table id="positionPrioritiesTable">
+                    <thead>
+                        <tr>
+                            <th>Position</th>
+                            <th>Priority Attribute 1</th>
+                            <th>Priority Attribute 2</th>
+                            <th>Preferred Archetype 1</th>
+                            <th>Preferred Archetype 2</th>
+                            <th>Avoid Archetype</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positionPrioritiesBody"></tbody>
+                </table>
+            </div>
+
+            <div class="settings-save-row">
+                <button id="saveSettingsBtn" class="refresh-btn">💾 Save Settings</button>
+                <button id="resetSettingsBtn" class="link-btn">Reset to defaults</button>
+                <span id="settingsSaveStatus" class="upload-status"></span>
             </div>
         </section>
     </div>
