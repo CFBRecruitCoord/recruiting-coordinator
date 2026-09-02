@@ -28,6 +28,33 @@
 
     <main class="main-content">
     <div id="recruitsTab" class="tab-panel active">
+        <details class="info-box">
+            <summary>How this works &amp; why it matters</summary>
+            <div class="info-box-body">
+                <h4>What this page shows</h4>
+                <p>Every recruit currently in your dynasty's recruiting board, ranked and rated. This is the raw pool you're picking targets from &mdash; everything else in this app (Class Landscape, Recruit Targets) is built from this same data.</p>
+
+                <h4>How Raw Rating is calculated</h4>
+                <p>Raw Rating measures how good a recruit is <strong>relative to their peers</strong> &mdash; other recruits at the same position and star level &mdash; rather than just their raw Overall number. It's built from:</p>
+                <ul>
+                    <li><strong>Base Gap</strong>: their Overall minus the average Overall for their position + star combination (or the average for their star level alone, if there aren't at least 3 other recruits at that exact position/star combo to compare against)</li>
+                    <li><strong>Speed &amp; Strength adjustments</strong>: bonus or penalty based on how their Speed/Strength compares to the average at their position, weighted lightly (15% each) since these matter more for some positions than others</li>
+                    <li><strong>Gem bonus</strong>: a flat +0.5 if the game's own scouting has flagged them as a "Gem" (likely to outperform their rating)</li>
+                </ul>
+                <p>A Raw Rating of 0 means "exactly what you'd expect for a recruit at this position and star level." Positive means better than expected, negative means worse.</p>
+
+                <h4>How NIL Adjusted Rating is calculated</h4>
+                <p>Same as Raw Rating, plus an adjustment for how their NIL asking price compares to the average for their position/star tier &mdash; a recruit asking for less than their peers gets a bonus, one asking for more gets a penalty. This is the column to sort by if your program is NIL-budget-conscious: it surfaces value picks, not just the most talented recruits.</p>
+
+                <h4>How to use this page</h4>
+                <ul>
+                    <li>Sort by <strong>NIL Adj. Rating</strong> to find the best value at each position &mdash; players who grade out better than their star rating alone would suggest, and won't blow your NIL budget</li>
+                    <li>Use the <strong>Interested In</strong> filter to see only recruits who already have your school in their top schools list &mdash; a much shorter, more realistic list to actually pursue</li>
+                    <li>Toggle <strong>Blur OVR / SPD</strong> off only once you've formed your own opinion of a recruit's tape/profile &mdash; on by default so the raw numbers don't anchor your evaluation before you've looked at everything else</li>
+                </ul>
+            </div>
+        </details>
+
         <section class="refresh-panel hidden" id="refreshPanel">
             <div class="refresh-row">
                 <button id="refreshBtn" class="refresh-btn">🔄 Refresh from Save File</button>
@@ -139,7 +166,30 @@
 
     <div id="averagesTab" class="tab-panel">
         <section class="averages-panel">
-            <p class="leaderboard-hint">A landscape view of this recruiting class's national averages, broken down by position and sorted by highest Avg Overall first. Load recruits in the Recruit Explorer tab first (upload or refresh), then filter here by star rating. Highlighted columns are the ratings that matter most for that position. NIL is the game's internal valuation index, not a literal dollar figure &mdash; individual below-zero values are floored at 0 before averaging, so a position never shows an expected NIL below zero.</p>
+            <details class="info-box">
+                <summary>How this works &amp; why it matters</summary>
+                <div class="info-box-body">
+                    <h4>What this page shows</h4>
+                    <p>The national average profile at each position, for <strong>this year's recruiting class specifically</strong> (not rostered players &mdash; see National Landscape for that). One row per position, sorted by highest average Overall first, so you can see at a glance which positions are loaded with talent this cycle and which are thin.</p>
+
+                    <h4>How it's calculated</h4>
+                    <ul>
+                        <li><strong>Avg OVR</strong> and the athletic ratings (Speed, Strength, Awareness, Agility, Acceleration, Jumping) are plain averages across every recruit at that position &mdash; filter by star rating first if you want, say, "average 4&#9733; QB" instead of "average QB regardless of star level"</li>
+                        <li><strong>Highlighted columns</strong> are the 2-3 ratings that matter most for that specific position (e.g. Speed/Agility/Jumping for WR, Strength/Awareness for offensive line) &mdash; everything else is shown too, just not emphasized</li>
+                        <li><strong>Avg NIL</strong> is the game's internal valuation index, not a literal dollar figure. Individual recruits with a below-zero value are floored at 0 before averaging, so a position's average NIL is never negative even if a few recruits there have below-baseline value</li>
+                    </ul>
+
+                    <h4>Why it matters</h4>
+                    <p>Ratings only mean something in context. A recruit with 88 Speed sounds great in isolation &mdash; but if the average CB this cycle is sitting at 90 Speed, that recruit is actually below par for the position. This page gives you that baseline so you can judge whether a specific recruit you're evaluating on the Recruit Explorer tab is genuinely a standout, or just looks good until you compare them to their actual peer group.</p>
+
+                    <h4>How to use this page</h4>
+                    <ul>
+                        <li>Before committing to a target, check where their key ratings fall relative to this page's average for their position and star level</li>
+                        <li>Use the star filter to narrow the comparison &mdash; a 3&#9733; recruit should be judged against other 3&#9733;s, not the whole position pool</li>
+                        <li>Watch for positions with unusually high or low Avg NIL &mdash; that tells you where the market is expensive or a bargain this cycle</li>
+                    </ul>
+                </div>
+            </details>
             <div class="toolbar">
                 <div class="toolbar-group">
                     <label for="avgStarFilter">Star Rating</label>
@@ -172,6 +222,35 @@
     <div id="nationalTab" class="tab-panel">
         <section class="averages-panel">
             <p class="leaderboard-hint">Every currently-rostered player nationwide (not recruits), grouped by team caliber and class year. Team tier is the save's own 0-10 Team Prestige bucketed into 4 tiers, mirroring recruit star tiers. "Starter" means the highest-Overall player(s) at that exact position on their roster (the save's own depth chart data didn't resolve reliably, so this is a realistic-slot-count proxy instead).</p>
+
+            <details class="info-box">
+                <summary>How this works &amp; why it matters</summary>
+                <div class="info-box-body">
+                    <h4>What this page shows</h4>
+                    <p>Everyone currently <strong>on a roster</strong> nationwide &mdash; not recruits. This is where you go to answer "how good does a team actually need to be at a position to compete at a given level," which the Class Landscape tab can't tell you since it's only looking at incoming prospects.</p>
+
+                    <h4>Team Tier</h4>
+                    <p>Every team gets bucketed into one of 4 tiers based on the save's own 0-10 Team Prestige rating: <strong>Championship Caliber</strong> (7-10), <strong>Contending</strong> (5-6), <strong>Competing</strong> (3-4), <strong>Rebuilding</strong> (0-2). These cutoffs aren't arbitrary &mdash; they split all 138 real teams into four roughly even groups, so each tier represents a genuine quarter of the national landscape, not a skewed bucket.</p>
+
+                    <h4>"Starter"</h4>
+                    <p>The save's own depth chart data didn't resolve to sensible players when checked, so instead a player is counted as a starter if they're the top-Overall player(s) at their exact position on their team, using realistic slot counts (1 for QB, 3 for WR, 2 for CB, etc.). Anywhere you see "starters weighted 3&times;," this is the definition being used.</p>
+
+                    <h4>🏆 National Power Rankings</h4>
+                    <p>The single best Offense, Defense, and Overall roster nationwide. <strong>Offense</strong> blends the QB/RB/WR/TE/Offensive Line position-group scores together; <strong>Defense</strong> blends DL/LB/DB; <strong>Overall</strong> blends all ten groups. Click any team card to see its top 3 players at that exact set of positions.</p>
+
+                    <h4>Top 5 Teams, by Position Group</h4>
+                    <p>Same idea, narrowed to one position group at a time. A team's group score averages its starter-weighted Overall at every individual position in the group separately (e.g. Offensive Line = the average of Left Tackle, Left Guard, Center, Right Guard, and Right Tackle averages) rather than just pooling every lineman together &mdash; that keeps a team with 12 mediocre backup guards from outscoring a team with 5 genuinely great starters. A team missing a position entirely (no Fullback, say) is simply left out of that one average instead of being penalized for it.</p>
+
+                    <h4>Tier &times; Class Matrix</h4>
+                    <p>Pick a position and see its average Overall across every combination of team caliber and class year at once. This is the best view for spotting <strong>development curves</strong> &mdash; e.g. confirming that a Contending team's Junior WRs really do outgrade a Rebuilding team's Junior WRs, or seeing how much runway a true freshman typically needs before they're producing at a Championship-Caliber level.</p>
+
+                    <h4>All Positions, by Class</h4>
+                    <p>The exhaustive reference table &mdash; every position broken out by class year, filterable by position and team tier. Key Rating columns show whichever 1-3 ratings matter most for that specific position (e.g. Throw Power/Accuracy for QB, Man Coverage for CB), pulled from the players' real, position-specific ratings rather than generic athletic testing numbers.</p>
+
+                    <h4>Why it matters</h4>
+                    <p>This tab is your benchmark for "what does good actually look like." Whether you're deciding if your own roster is competitive at a position, figuring out how many years a recruit needs to develop into a starter, or just want to know which programs are stacked where &mdash; this is where those national baselines live. It pairs directly with the Recruit Targets tab: the position-need scoring there is built by comparing your roster against these same national averages.</p>
+                </div>
+            </details>
 
             <h1 class="power-rankings-title">🏆 National Power Rankings</h1>
             <p class="leaderboard-hint power-rankings-hint">The best Offense, Defense, and Overall roster nationwide &mdash; Offense blends Quarterback/Running Back/Wide Receiver/Tight End/Offensive Line, Defense blends Defensive Line/Linebacker/Defensive Back, and Overall blends all ten position groups below.</p>
@@ -251,6 +330,41 @@
         <section class="averages-panel">
             <h1 class="power-rankings-title" id="targetsTitle">🎯 Recruit Targets</h1>
             <p class="leaderboard-hint power-rankings-hint">A 35-recruit target board built from your current roster, depth chart, and NIL situation &mdash; not just a generic top-recruits list. Every recruit is scored on positional need (factoring in graduating Juniors/Seniors), fit vs. your current players at that position, NIL cost-effectiveness, how interested they actually are in your program, and home-state/pipeline ties. Fullbacks, Kickers, and Punters are excluded from the board entirely.</p>
+
+            <details class="info-box">
+                <summary>How this works &amp; why it matters</summary>
+                <div class="info-box-body">
+                    <h4>What this page shows</h4>
+                    <p>This is the one page in the app that answers "who should I actually go sign," specifically for your team &mdash; not a generic top-recruits list, but 35 recruits selected and ranked by how well they fit your program right now. Every other tab shows you data; this tab turns it into a plan.</p>
+
+                    <h4>Position Need score</h4>
+                    <p>Every position gets a 0-100 need score, blended from three things:</p>
+                    <ul>
+                        <li><strong>Quality gap (45%)</strong> &mdash; how far your roster's average at that position sits below the national average (see National Landscape)</li>
+                        <li><strong>Succession risk (35%)</strong> &mdash; what fraction of your current starters there are Juniors or Seniors, about to graduate and need replacing</li>
+                        <li><strong>Depth deficiency (20%)</strong> &mdash; whether your roster even has a realistic number of bodies at that position, regardless of quality</li>
+                    </ul>
+                    <p>A position with zero rostered players (like a team carrying no Fullback) automatically maxes out at 100.</p>
+
+                    <h4>Talent and NIL value</h4>
+                    <p>Each recruit's Raw Rating and NIL Adjustment (from the Recruit Explorer tab) get converted to a percentile against every other eligible recruit nationally, so "talented" and "good NIL value" mean the same thing here as they do everywhere else in the app.</p>
+
+                    <h4>Interest and geography</h4>
+                    <p>Recruits already showing real interest in your specific program score higher &mdash; "Not on Radar" doesn't disqualify a recruit, it's just weighted lower, since a great enough fit can still be worth a longshot pursuit. Home-state recruits get the strongest geography bonus; recruits from one of your program's recruiting pipeline states (visible in the Bowl/Team context above) get a smaller one scaled to how strong that pipeline actually is.</p>
+
+                    <h4>The three tiers use different formulas on purpose</h4>
+                    <ul>
+                        <li><strong>Day One Starters</strong> (top 5) &mdash; must be 4-5&#9733; or a top-20 national position rank to even qualify. Talent and need dominate the score; these need to be immediate, obvious upgrades.</li>
+                        <li><strong>Program Movers</strong> (top 10) &mdash; need, talent, NIL value, and interest are balanced fairly evenly. These are the realistic 1-2 year starters.</li>
+                        <li><strong>Foundational Players</strong> (top 20) &mdash; NIL value and need are weighted heaviest, talent least. These are the affordable, longer-runway picks that keep the program's depth healthy 2-3 years out.</li>
+                    </ul>
+                    <p>Each tier also caps how many recruits can share the same position (1 for Day One, 2 for Program Movers, 3 for Foundational), so one gaping roster hole can't flood the whole board with recruits at a single spot.</p>
+
+                    <h4>Why it matters</h4>
+                    <p>A generic "top 35 recruits" list is the same for every team in the league &mdash; it doesn't know your roster is thin at Safety, or that your starting Center is a graduating Senior, or that your program has a real pipeline in a specific state. This board does. Work it top to bottom: Day One Starters first (your most urgent, highest-confidence needs), then Program Movers, then Foundational Players to round out the class affordably.</p>
+                </div>
+            </details>
+
             <div id="teamContextSummary" class="team-context-summary"></div>
 
             <div id="targetsContainer">

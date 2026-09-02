@@ -80,6 +80,57 @@ body {
     margin: 0 0 16px;
 }
 
+/* ---- Reusable "How this works & why it matters" collapsible callout ---- */
+.info-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-2);
+    border-radius: var(--radius);
+    padding: 4px 18px 4px;
+    margin: 0 0 22px;
+}
+
+.info-box summary {
+    cursor: pointer;
+    padding: 12px 0;
+    font-weight: 700;
+    font-size: 13.5px;
+    color: var(--accent-2);
+    list-style: none;
+}
+.info-box summary::-webkit-details-marker { display: none; }
+.info-box summary::before { content: "▸ "; }
+.info-box[open] summary::before { content: "▾ "; }
+
+.info-box-body {
+    padding: 2px 0 16px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-dim);
+}
+
+.info-box-body h4 {
+    color: var(--text);
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 16px 0 6px;
+}
+.info-box-body h4:first-child { margin-top: 0; }
+
+.info-box-body p { margin: 0 0 10px; }
+.info-box-body ul { margin: 0 0 10px; padding-left: 20px; }
+.info-box-body li { margin-bottom: 4px; }
+.info-box-body code {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 12px;
+    color: var(--text);
+}
+.info-box-body strong { color: var(--text); }
+
 .averages-panel .key-stat {
     color: var(--accent);
     font-weight: 700;
