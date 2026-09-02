@@ -159,6 +159,25 @@ app.post('/api/refresh', localPathGate, async (req, res) => {
     }
 });
 
+// A try/catch around an `await` chain can only catch errors that properly
+// reject a promise. If a dependency (e.g. madden-franchise doing raw file
+// I/O internally) emits a stream 'error' event with no listener, or throws
+// synchronously outside that chain, Node treats it as an uncaught exception
+// and kills the WHOLE PROCESS - silently, with the client just seeing the
+// connection die and zero response, which is exactly what "502 / connection
+// closed unexpectedly" with no error in the app's own logs looks like. These
+// handlers exist purely so that if that happens again, the real error and
+// stack trace get printed before the process goes down, instead of nothing.
+process.on('uncaughtException', err => {
+    console.error('=== UNCAUGHT EXCEPTION (process will exit) ===');
+    console.error(err);
+    process.exit(1);
+});
+process.on('unhandledRejection', reason => {
+    console.error('=== UNHANDLED PROMISE REJECTION ===');
+    console.error(reason);
+});
+
 app.listen(PORT, () => {
     console.log(`Recruiting Coordinator running on port ${PORT}`);
     console.log(`Mode: ${MULTI_TENANT_MODE ? 'HOSTED (login required)' : 'PERSONAL (no login, local-path refresh enabled)'}`);
