@@ -833,6 +833,105 @@ tr.detail-row td {
 }
 .context-value.accent { color: var(--accent); }
 
+/* ---- Recruit Targets: Team Overview hero. Deliberately its own look,
+   separate from the plain .context-card grid used elsewhere (Admin tab) -
+   this is the single most important context on the app's flagship page,
+   so it's built to stand out rather than blend in with everything else. */
+.team-hero-wrap { margin: 4px 0 30px; }
+
+.team-hero-banner {
+    background-color: var(--panel);
+    background-repeat: no-repeat;
+    border: 1px solid var(--border);
+    border-left: 6px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 20px 26px;
+    margin-bottom: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+.team-hero-eyebrow {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.75);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+    margin-bottom: 4px;
+}
+
+.team-hero-name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #ffffff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85), 0 2px 14px rgba(0, 0, 0, 0.6);
+}
+
+.team-hero-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+}
+
+.hero-stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    transition: transform 0.15s ease;
+}
+.hero-stat-card:hover { transform: translateY(-2px); }
+
+.hero-stat-icon { font-size: 22px; margin-bottom: 6px; }
+
+.hero-stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+}
+
+.hero-stat-value {
+    font-family: 'Oswald', sans-serif;
+    font-size: 27px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+}
+
+.hero-stat-card.tier-championship { border-color: rgba(255, 107, 53, 0.55); background: linear-gradient(160deg, rgba(255, 107, 53, 0.16), var(--panel) 70%); }
+.hero-stat-card.tier-championship .hero-stat-value { color: var(--accent); }
+
+.hero-stat-card.tier-contending { border-color: rgba(79, 195, 247, 0.55); background: linear-gradient(160deg, rgba(79, 195, 247, 0.16), var(--panel) 70%); }
+.hero-stat-card.tier-contending .hero-stat-value { color: var(--accent-2); }
+
+.hero-stat-card.tier-competing { border-color: rgba(245, 179, 1, 0.5); background: linear-gradient(160deg, rgba(245, 179, 1, 0.14), var(--panel) 70%); }
+.hero-stat-card.tier-competing .hero-stat-value { color: #f5b301; }
+
+.hero-stat-card.tier-rebuilding { border-color: rgba(229, 72, 77, 0.55); background: linear-gradient(160deg, rgba(229, 72, 77, 0.16), var(--panel) 70%); }
+.hero-stat-card.tier-rebuilding .hero-stat-value { color: var(--bust); }
+
+.hero-stat-card.hero-stat-budget { border-color: rgba(53, 196, 107, 0.55); background: linear-gradient(160deg, rgba(53, 196, 107, 0.16), var(--panel) 70%); }
+.hero-stat-card.hero-stat-budget .hero-stat-value { color: var(--gem); }
+
+.hero-stat-card.grade-a { border-color: rgba(53, 196, 107, 0.55); background: linear-gradient(160deg, rgba(53, 196, 107, 0.16), var(--panel) 70%); }
+.hero-stat-card.grade-a .hero-stat-value { color: var(--gem); }
+.hero-stat-card.grade-b { border-color: rgba(79, 195, 247, 0.55); background: linear-gradient(160deg, rgba(79, 195, 247, 0.16), var(--panel) 70%); }
+.hero-stat-card.grade-b .hero-stat-value { color: var(--accent-2); }
+.hero-stat-card.grade-c { border-color: rgba(245, 179, 1, 0.5); background: linear-gradient(160deg, rgba(245, 179, 1, 0.14), var(--panel) 70%); }
+.hero-stat-card.grade-c .hero-stat-value { color: #f5b301; }
+.hero-stat-card.grade-d, .hero-stat-card.grade-f {
+    border-color: rgba(229, 72, 77, 0.55);
+    background: linear-gradient(160deg, rgba(229, 72, 77, 0.16), var(--panel) 70%);
+}
+.hero-stat-card.grade-d .hero-stat-value, .hero-stat-card.grade-f .hero-stat-value { color: var(--bust); }
+
 .targets-section {
     margin-bottom: 40px;
 }
@@ -1018,6 +1117,7 @@ tr.detail-row td {
     align-items: center;
     gap: 16px;
     margin-top: 20px;
+    margin-bottom: 20px;
 }
 
 .settings-toggle-row {

@@ -1169,27 +1169,64 @@
         `;
     }
 
+    const TIER_CLASS_BY_NUM = { 4: 'tier-championship', 3: 'tier-contending', 2: 'tier-competing', 1: 'tier-rebuilding' };
+    const GRADE_CLASS_BY_LETTER = { A: 'grade-a', B: 'grade-b', C: 'grade-c', D: 'grade-d', F: 'grade-f' };
+
+    // The single most important context on the app's flagship page, so it's
+    // a deliberately bigger, more colorful "hero" - team identity (name,
+    // mascot, real team colors pulled from the save) up top, then just the
+    // 3 stats that actually matter for a recruiting board: what tier of
+    // program this is, and the NIL budget situation. Everything else that
+    // used to live here (Conference Prestige/Brand Exposure/Program
+    // Traditions/Stadium Atmosphere grades, Facilities Level) was cut - real
+    // program-building context, but not decision-relevant for "who do I
+    // target this cycle," which is what this page is actually for.
     function renderTeamContextSummary() {
         if (!userTeamContext) { teamContextSummary.innerHTML = ''; return; }
         const t = userTeamContext;
         const anyPlayer = allRosterPlayers.find(p => p.teamName === t.name);
         const tierLabel = anyPlayer ? anyPlayer.prestigeTierLabel : `Prestige ${t.prestige}`;
+        // Strip the "(7-10)"-style numeric range - useful context on National
+        // Landscape where multiple tiers are compared side by side, just
+        // noise here where the team's own tier is the only one shown.
+        const tierLabelClean = tierLabel.replace(/\s*\([^)]*\)\s*$/, '');
+        const tierClass = anyPlayer ? (TIER_CLASS_BY_NUM[anyPlayer.prestigeTier] || '') : '';
 
-        teamContextSummary.innerHTML = [
-            ['Program Tier', tierLabel, 'accent'],
-            ['Remaining Budget', `${t.budget.remaining} pts`, ''],
-            ['Budget Grade', t.grades.budget || 'N/A', ''],
-            ['Conf. Prestige Grade', t.grades.conferencePrestige || 'N/A', ''],
-            ['Brand Exposure Grade', t.grades.brandExposure || 'N/A', ''],
-            ['Program Traditions Grade', t.grades.programTraditions || 'N/A', ''],
-            ['Stadium Atmosphere Grade', t.grades.stadiumAtmosphere || 'N/A', ''],
-            ['Facilities Level', `${t.facilitiesLevel || 0} / 5`, '']
-        ].map(([label, value, cls]) => `
-            <div class="context-card">
-                <div class="context-label">${label}</div>
-                <div class="context-value ${cls}">${escapeHtml(String(value))}</div>
+        const gradeLetter = (t.grades.budget || '').trim().charAt(0).toUpperCase();
+        const gradeClass = GRADE_CLASS_BY_LETTER[gradeLetter] || '';
+
+        const mascot = anyPlayer && anyPlayer.teamMascot;
+        const fullTeamName = mascot ? `${t.name} ${mascot}` : t.name;
+        const colorPrimary = (anyPlayer && anyPlayer.teamColorPrimary) || '#ff6b35';
+        const colorSecondary = (anyPlayer && anyPlayer.teamColorSecondary) || colorPrimary;
+        // Hex+alpha suffix trick (same one used for the Top Teams glow
+        // effect) rather than rgba()/color-mix(), since these come through
+        // as plain "#rrggbb" strings already.
+        const bannerGradient = `linear-gradient(120deg, ${colorPrimary}66 0%, ${colorSecondary}33 55%, transparent 100%)`;
+
+        teamContextSummary.innerHTML = `
+            <div class="team-hero-banner" style="background-image: ${bannerGradient}; border-left-color: ${colorPrimary};">
+                <div class="team-hero-eyebrow">Your Team</div>
+                <div class="team-hero-name">🏈 ${escapeHtml(fullTeamName)}</div>
             </div>
-        `).join('');
+            <div class="team-hero-stats">
+                <div class="hero-stat-card ${tierClass}">
+                    <div class="hero-stat-icon">🏆</div>
+                    <div class="hero-stat-label">Program Tier</div>
+                    <div class="hero-stat-value">${escapeHtml(tierLabelClean)}</div>
+                </div>
+                <div class="hero-stat-card hero-stat-budget">
+                    <div class="hero-stat-icon">💰</div>
+                    <div class="hero-stat-label">Remaining NIL Budget</div>
+                    <div class="hero-stat-value">${t.budget.remaining} pts</div>
+                </div>
+                <div class="hero-stat-card ${gradeClass}">
+                    <div class="hero-stat-icon">📊</div>
+                    <div class="hero-stat-label">NIL Budget Grade</div>
+                    <div class="hero-stat-value">${escapeHtml(t.grades.budget || 'N/A')}</div>
+                </div>
+            </div>
+        `;
     }
 
     function renderRecruitTargets() {
