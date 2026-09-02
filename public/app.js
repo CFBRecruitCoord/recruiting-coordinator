@@ -211,8 +211,22 @@
 
         try {
             const res = await fetch('/api/upload', { method: 'POST', body: formData });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+            // Read as text first rather than assuming JSON - a platform-level
+            // failure (timeout, out-of-memory crash, proxy error) often
+            // returns an HTML error page or a differently-shaped body
+            // instead of the JSON my own server code always returns, and
+            // res.json() would otherwise throw a confusing "Unexpected
+            // token" error that hides what actually happened.
+            const rawText = await res.text();
+            let data;
+            try { data = JSON.parse(rawText); } catch (e) { data = null; }
+
+            if (!res.ok) {
+                const detail = (data && data.error) || rawText.slice(0, 200) || `HTTP ${res.status}`;
+                throw new Error(`Upload failed (HTTP ${res.status}): ${detail}`);
+            }
+            if (!data) throw new Error('Upload failed: server returned an unexpected (non-JSON) response.');
 
             allRecruits = data.recruits;
             allRosterPlayers = data.roster || [];
