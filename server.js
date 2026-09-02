@@ -13,7 +13,7 @@ const {
     signup, verifyLogin, createSession, destroySession, getUserForSession,
     requireAuth, setSessionCookie, clearSessionCookie, SESSION_COOKIE_NAME
 } = require('./lib/auth');
-const { isAdmin, requireAdmin, recordUploadEvent, getAdminStats } = require('./lib/adminStats');
+const { isAdmin, requireAdmin, recordUploadEvent, getAdminStats, pruneOldUploadEvents } = require('./lib/adminStats');
 const {
     submitFeedback, listFeedbackForUser, listFeedback, updateFeedbackStatus, getFeedbackCounts
 } = require('./lib/feedback');
@@ -31,10 +31,41 @@ const PORT = process.env.PORT || 4000;
 const MULTI_TENANT_MODE = String(process.env.MULTI_TENANT_MODE || '').trim().toLowerCase() === 'true';
 
 // Store uploads in a temp dir; save files can be ~10MB so keep a generous limit.
+// This is the OS's own temp directory, NOT the persistent volume - it's
+// already wiped on every redeploy/restart, and every upload is unlinked
+// immediately after parsing (success or failure - see the try/finally in
+// /api/upload below) regardless of hosted vs. personal mode. The only real
+// gap is a hard crash mid-request (e.g. the OOM crash this app has hit
+// before) skipping that cleanup - sweepOrphanedUploads() below exists
+// purely as a safety net for that one case, not because uploads normally
+// stick around.
+const UPLOAD_TMP_DIR = path.join(os.tmpdir(), 'recruiting-coordinator-uploads');
 const upload = multer({
-    dest: path.join(os.tmpdir(), 'recruiting-coordinator-uploads'),
+    dest: UPLOAD_TMP_DIR,
     limits: { fileSize: 100 * 1024 * 1024 }
 });
+
+// Deletes any leftover upload temp file older than an hour - a save file
+// upload takes seconds to at most ~a minute even on the largest saves
+// (see the OOM investigation notes elsewhere in this file), so anything
+// still sitting here an hour later was orphaned by a crash before its own
+// cleanup ran, not a slow request in progress.
+const ORPHAN_UPLOAD_MAX_AGE_MS = 60 * 60 * 1000;
+function sweepOrphanedUploads() {
+    fs.readdir(UPLOAD_TMP_DIR, (err, files) => {
+        if (err) return; // directory doesn't exist yet - nothing to sweep
+        const now = Date.now();
+        files.forEach(file => {
+            const filePath = path.join(UPLOAD_TMP_DIR, file);
+            fs.stat(filePath, (statErr, stats) => {
+                if (statErr) return;
+                if (now - stats.mtimeMs > ORPHAN_UPLOAD_MAX_AGE_MS) {
+                    fs.unlink(filePath, () => {});
+                }
+            });
+        });
+    });
+}
 
 app.use(cookieParser());
 app.use(express.json());
@@ -259,6 +290,43 @@ process.on('unhandledRejection', reason => {
     console.error('=== UNHANDLED PROMISE REJECTION ===');
     console.error(reason);
 });
+
+// ---- Storage upkeep, so disk usage on a hosted plan's persistent volume
+// can't grow unbounded ----
+// Uploaded save files themselves are never a concern here - they only ever
+// touch the OS's own temp dir (wiped on every redeploy anyway, and
+// unlinked immediately after each request regardless of outcome; see the
+// try/finally in /api/upload). sweepOrphanedUploads() is just a safety net
+// for the one way that cleanup can be skipped: a hard crash mid-request.
+//
+// The one thing on the actual persistent volume that has no other
+// cleanup is the upload_events log in auth.db (sessions already
+// self-expire; users/feedback are real product data, deliberately left
+// alone). Run both sweeps once at startup - so a redeploy doesn't wait a
+// full interval before the first cleanup - then on a recurring timer.
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * ONE_HOUR_MS;
+const UPLOAD_EVENT_RETENTION_DAYS = 90;
+
+sweepOrphanedUploads();
+setInterval(sweepOrphanedUploads, ONE_HOUR_MS);
+
+function pruneUploadEventsLog() {
+    try {
+        const deleted = pruneOldUploadEvents(UPLOAD_EVENT_RETENTION_DAYS);
+        if (deleted > 0) console.log(`Pruned ${deleted} upload_events row(s) older than ${UPLOAD_EVENT_RETENTION_DAYS} days.`);
+    } catch (err) {
+        console.error('Failed to prune old upload_events rows:', err);
+    }
+}
+// Hosted mode only - this table is only ever written to when there's a
+// logged-in user (see recordUploadEvent's early return), so in personal
+// mode auth.db never even gets created; running this unconditionally
+// would create it anyway for nothing.
+if (MULTI_TENANT_MODE) {
+    pruneUploadEventsLog();
+    setInterval(pruneUploadEventsLog, ONE_DAY_MS);
+}
 
 app.listen(PORT, () => {
     console.log(`Recruiting Coordinator running on port ${PORT}`);
