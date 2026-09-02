@@ -22,7 +22,9 @@ const PORT = process.env.PORT || 4000;
 // the "refresh from a local file path" feature is disabled outright, since
 // that path lives on the SERVER's disk - meaningless (and a path-traversal
 // risk) once other people's save files live on their own computers instead.
-const MULTI_TENANT_MODE = process.env.MULTI_TENANT_MODE === 'true';
+// Trimmed + lowercased before comparing, so a stray space or "True"/"TRUE"
+// typed into a hosting dashboard doesn't silently fall back to personal mode.
+const MULTI_TENANT_MODE = String(process.env.MULTI_TENANT_MODE || '').trim().toLowerCase() === 'true';
 
 // Store uploads in a temp dir; save files can be ~10MB so keep a generous limit.
 const upload = multer({
@@ -158,5 +160,10 @@ app.post('/api/refresh', localPathGate, async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Recruiting Coordinator running at http://localhost:${PORT}`);
+    console.log(`Recruiting Coordinator running on port ${PORT}`);
+    console.log(`Mode: ${MULTI_TENANT_MODE ? 'HOSTED (login required)' : 'PERSONAL (no login, local-path refresh enabled)'}`);
+    console.log(`Raw MULTI_TENANT_MODE env value: ${JSON.stringify(process.env.MULTI_TENANT_MODE)}`);
+    if (MULTI_TENANT_MODE) {
+        console.log(`DATA_DIR: ${process.env.DATA_DIR || '(not set - using default in-repo path, will NOT survive a redeploy)'}`);
+    }
 });
