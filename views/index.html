@@ -23,7 +23,6 @@
         <button class="tab-btn active" data-tab="recruitsTab">Recruit Explorer</button>
         <button class="tab-btn" data-tab="averagesTab">Class Landscape</button>
         <button class="tab-btn" data-tab="nationalTab">National Landscape</button>
-        <button class="tab-btn" data-tab="topTeamsTab">Top Teams</button>
         <button class="tab-btn" data-tab="targetsTab">Recruit Targets</button>
     </nav>
 
@@ -174,6 +173,14 @@
         <section class="averages-panel">
             <p class="leaderboard-hint">Every currently-rostered player nationwide (not recruits), grouped by team caliber and class year. Team tier is the save's own 0-10 Team Prestige bucketed into 4 tiers, mirroring recruit star tiers. "Starter" means the highest-Overall player(s) at that exact position on their roster (the save's own depth chart data didn't resolve reliably, so this is a realistic-slot-count proxy instead).</p>
 
+            <h1 class="power-rankings-title">🏆 National Power Rankings</h1>
+            <p class="leaderboard-hint power-rankings-hint">The best Offense, Defense, and Overall roster nationwide &mdash; Offense blends Quarterback/Running Back/Wide Receiver/Tight End/Offensive Line, Defense blends Defensive Line/Linebacker/Defensive Back, and Overall blends all ten position groups below.</p>
+            <div id="powerRankings"><p class="empty-row">Load a save file in the Recruit Explorer tab to see power rankings.</p></div>
+
+            <h2>Top 5 Teams, by Position Group</h2>
+            <p class="leaderboard-hint">A team's group score averages its starter-weighted Overall at every individual position in the group (e.g. Left Tackle, Left Guard, Center, Right Guard, Right Tackle for Offensive Line) &mdash; starters count 3&times; as much as bench players, and a team missing a position entirely (e.g. no Fullback) is simply left out of that one position's average rather than penalized for it.</p>
+            <div id="topTeamsContainer"><p class="empty-row">Load a save file in the Recruit Explorer tab to see top teams.</p></div>
+
             <h2>Tier &times; Class, by Position</h2>
             <p class="leaderboard-hint">Pick a position to see how its average Overall looks across every combination of team caliber and class year &mdash; useful for spotting development curves, e.g. "how does a Contending team's Junior WR corps compare to a Championship Caliber team's."</p>
             <div class="toolbar">
@@ -237,17 +244,6 @@
                     <tbody id="rosterBody"><tr><td colspan="6" class="empty-row">Load a save file in the Recruit Explorer tab to see the national landscape.</td></tr></tbody>
                 </table>
             </div>
-        </section>
-    </div>
-
-    <div id="topTeamsTab" class="tab-panel">
-        <section class="averages-panel">
-            <h1 class="power-rankings-title">🏆 National Power Rankings</h1>
-            <p class="leaderboard-hint power-rankings-hint">The best Offense, Defense, and Overall roster nationwide &mdash; Offense blends Quarterback/Running Back/Wide Receiver/Tight End/Offensive Line, Defense blends Defensive Line/Linebacker/Defensive Back, and Overall blends all ten position groups below.</p>
-            <div id="powerRankings"><p class="empty-row">Load a save file in the Recruit Explorer tab to see power rankings.</p></div>
-
-            <p class="leaderboard-hint">Top 5 teams at each position group, nationwide. A team's group score averages its starter-weighted Overall at every individual position in the group (e.g. Left Tackle, Left Guard, Center, Right Guard, Right Tackle for Offensive Line) &mdash; starters count 3&times; as much as bench players, and a team missing a position entirely (e.g. no Fullback) is simply left out of that one position's average rather than penalized for it.</p>
-            <div id="topTeamsContainer"><p class="empty-row">Load a save file in the Recruit Explorer tab to see top teams.</p></div>
         </section>
     </div>
 
