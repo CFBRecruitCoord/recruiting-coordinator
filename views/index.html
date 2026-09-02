@@ -21,7 +21,6 @@
 
     <nav class="top-tabs">
         <button class="tab-btn active" data-tab="recruitsTab">Recruit Explorer</button>
-        <button class="tab-btn" data-tab="averagesTab">Class Landscape</button>
         <button class="tab-btn" data-tab="nationalTab">National Landscape</button>
         <button class="tab-btn" data-tab="targetsTab">Recruit Targets</button>
         <button class="tab-btn" data-tab="settingsTab">Coordinator Settings</button>
@@ -30,33 +29,6 @@
 
     <main class="main-content">
     <div id="recruitsTab" class="tab-panel active">
-        <details class="info-box">
-            <summary>How this works &amp; why it matters</summary>
-            <div class="info-box-body">
-                <h4>What this page shows</h4>
-                <p>Every recruit currently in your dynasty's recruiting board, ranked and rated. This is the raw pool you're picking targets from &mdash; everything else in this app (Class Landscape, Recruit Targets) is built from this same data.</p>
-
-                <h4>How Raw Rating is calculated</h4>
-                <p>Raw Rating measures how good a recruit is <strong>relative to their peers</strong> &mdash; other recruits at the same position and star level &mdash; rather than just their raw Overall number. It's built from:</p>
-                <ul>
-                    <li><strong>Base Gap</strong>: their Overall minus the average Overall for their position + star combination (or the average for their star level alone, if there aren't at least 3 other recruits at that exact position/star combo to compare against)</li>
-                    <li><strong>Speed &amp; Strength adjustments</strong>: bonus or penalty based on how their Speed/Strength compares to the average at their position, weighted lightly (15% each) since these matter more for some positions than others</li>
-                    <li><strong>Gem bonus</strong>: a flat +0.5 if the game's own scouting has flagged them as a "Gem" (likely to outperform their rating) &mdash; left out entirely if you've turned on "Ignore Gem/Bust Status" in Coordinator Settings</li>
-                </ul>
-                <p>A Raw Rating of 0 means "exactly what you'd expect for a recruit at this position and star level." Positive means better than expected, negative means worse.</p>
-
-                <h4>How NIL Adjusted Rating is calculated</h4>
-                <p>Same as Raw Rating, plus an adjustment for how their NIL asking price compares to the average for their position/star tier &mdash; a recruit asking for less than their peers gets a bonus, one asking for more gets a penalty. This is the column to sort by if your program is NIL-budget-conscious: it surfaces value picks, not just the most talented recruits.</p>
-
-                <h4>How to use this page</h4>
-                <ul>
-                    <li>Sort by <strong>NIL Adj. Rating</strong> to find the best value at each position &mdash; players who grade out better than their star rating alone would suggest, and won't blow your NIL budget</li>
-                    <li>Use the <strong>Interested In</strong> filter to see only recruits who already have your school in their top schools list &mdash; a much shorter, more realistic list to actually pursue</li>
-                    <li>Toggle <strong>Blur OVR / SPD</strong> off only once you've formed your own opinion of a recruit's tape/profile &mdash; on by default so the raw numbers don't anchor your evaluation before you've looked at everything else</li>
-                </ul>
-            </div>
-        </details>
-
         <section class="refresh-panel hidden" id="refreshPanel">
             <div class="refresh-row">
                 <button id="refreshBtn" class="refresh-btn">🔄 Refresh from Save File</button>
@@ -96,129 +68,163 @@
             </div>
         </section>
 
-        <section class="results-panel hidden" id="resultsPanel">
-            <div class="toolbar">
-                <div class="toolbar-group">
-                    <label for="rangeSelect">Showing</label>
-                    <select id="rangeSelect"></select>
-                </div>
-                <div class="toolbar-group">
-                    <label for="posFilter">Position</label>
-                    <select id="posFilter"><option value="">All</option></select>
-                </div>
-                <div class="toolbar-group">
-                    <label for="starFilter">Stars</label>
-                    <select id="starFilter">
-                        <option value="">All</option>
-                        <option value="5">5★</option>
-                        <option value="4">4★</option>
-                        <option value="3">3★</option>
-                        <option value="2">2★</option>
-                        <option value="1">1★</option>
-                    </select>
-                </div>
-                <div class="toolbar-group">
-                    <label for="stateFilter">State</label>
-                    <select id="stateFilter"><option value="">All</option></select>
-                </div>
-                <div class="toolbar-group">
-                    <label for="schoolFilter">Interested In</label>
-                    <select id="schoolFilter"><option value="">Any School</option></select>
-                </div>
-                <div class="toolbar-group search-group">
-                    <label for="searchBox">Search</label>
-                    <input type="text" id="searchBox" placeholder="Recruit name...">
-                </div>
-                <label class="toolbar-group blur-toggle-group toggle-switch-label" for="blurToggle">
-                    <span class="toggle-switch-text">Blur OVR / SPD</span>
-                    <input type="checkbox" id="blurToggle" checked>
-                    <span class="toggle-track" aria-hidden="true"></span>
-                </label>
-                <div class="toolbar-group result-count" id="resultCount"></div>
-            </div>
+        <div class="sub-tabs">
+            <button class="sub-tab-btn active" data-subtab="explorerSubTab">📋 Recruit Explorer</button>
+            <button class="sub-tab-btn" data-subtab="classLandscapeSubTab">📊 Class Landscape</button>
+        </div>
 
-            <div class="table-wrap">
-                <table id="recruitTable">
-                    <thead>
-                        <tr>
-                            <th data-key="rank">National Rank</th>
-                            <th data-key="name">Recruit Name</th>
-                            <th data-key="position">POS</th>
-                            <th data-key="homeState">State</th>
-                            <th data-key="starsNum">Stars</th>
-                            <th data-key="overall">OVR</th>
-                            <th data-key="speed">SPD</th>
-                            <th data-key="nil">NIL</th>
-                            <th data-key="gem">Gem Status</th>
-                            <th data-key="rawRating">Raw Rating</th>
-                            <th data-key="nilAdjustedRating">NIL Adj. Rating</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody"></tbody>
-                </table>
-            </div>
-
-            <div class="pager">
-                <button id="prevPage">&larr; Prev 25</button>
-                <span id="pagerLabel"></span>
-                <button id="nextPage">Next 25 &rarr;</button>
-            </div>
-        </section>
-    </div>
-
-    <div id="averagesTab" class="tab-panel">
-        <section class="averages-panel">
+        <div id="explorerSubTab" class="sub-tab-panel active">
             <details class="info-box">
                 <summary>How this works &amp; why it matters</summary>
                 <div class="info-box-body">
                     <h4>What this page shows</h4>
-                    <p>The national average profile at each position, for <strong>this year's recruiting class specifically</strong> (not rostered players &mdash; see National Landscape for that). One row per position, sorted by highest average Overall first, so you can see at a glance which positions are loaded with talent this cycle and which are thin.</p>
+                    <p>Every recruit currently in your dynasty's recruiting board, ranked and rated. This is the raw pool you're picking targets from &mdash; everything else in this app (Class Landscape, Recruit Targets) is built from this same data.</p>
 
-                    <h4>How it's calculated</h4>
+                    <h4>How Raw Rating is calculated</h4>
+                    <p>Raw Rating measures how good a recruit is <strong>relative to their peers</strong> &mdash; other recruits at the same position and star level &mdash; rather than just their raw Overall number. It's built from:</p>
                     <ul>
-                        <li><strong>Avg OVR</strong> and the athletic ratings (Speed, Strength, Awareness, Agility, Acceleration, Jumping) are plain averages across every recruit at that position &mdash; filter by star rating first if you want, say, "average 4&#9733; QB" instead of "average QB regardless of star level"</li>
-                        <li><strong>Highlighted columns</strong> are the 2-3 ratings that matter most for that specific position (e.g. Speed/Agility/Jumping for WR, Strength/Awareness for offensive line) &mdash; everything else is shown too, just not emphasized</li>
-                        <li><strong>Avg NIL</strong> is the game's internal valuation index, not a literal dollar figure. Individual recruits with a below-zero value are floored at 0 before averaging, so a position's average NIL is never negative even if a few recruits there have below-baseline value</li>
+                        <li><strong>Base Gap</strong>: their Overall minus the average Overall for their position + star combination (or the average for their star level alone, if there aren't at least 3 other recruits at that exact position/star combo to compare against)</li>
+                        <li><strong>Speed &amp; Strength adjustments</strong>: bonus or penalty based on how their Speed/Strength compares to the average at their position, weighted lightly (15% each) since these matter more for some positions than others</li>
+                        <li><strong>Gem bonus</strong>: a flat +0.5 if the game's own scouting has flagged them as a "Gem" (likely to outperform their rating) &mdash; left out entirely if you've turned on "Ignore Gem/Bust Status" in Coordinator Settings</li>
                     </ul>
+                    <p>A Raw Rating of 0 means "exactly what you'd expect for a recruit at this position and star level." Positive means better than expected, negative means worse.</p>
 
-                    <h4>Why it matters</h4>
-                    <p>Ratings only mean something in context. A recruit with 88 Speed sounds great in isolation &mdash; but if the average CB this cycle is sitting at 90 Speed, that recruit is actually below par for the position. This page gives you that baseline so you can judge whether a specific recruit you're evaluating on the Recruit Explorer tab is genuinely a standout, or just looks good until you compare them to their actual peer group.</p>
+                    <h4>How NIL Adjusted Rating is calculated</h4>
+                    <p>Same as Raw Rating, plus an adjustment for how their NIL asking price compares to the average for their position/star tier &mdash; a recruit asking for less than their peers gets a bonus, one asking for more gets a penalty. This is the column to sort by if your program is NIL-budget-conscious: it surfaces value picks, not just the most talented recruits.</p>
 
                     <h4>How to use this page</h4>
                     <ul>
-                        <li>Before committing to a target, check where their key ratings fall relative to this page's average for their position and star level</li>
-                        <li>Use the star filter to narrow the comparison &mdash; a 3&#9733; recruit should be judged against other 3&#9733;s, not the whole position pool</li>
-                        <li>Watch for positions with unusually high or low Avg NIL &mdash; that tells you where the market is expensive or a bargain this cycle</li>
+                        <li>Sort by <strong>NIL Adj. Rating</strong> to find the best value at each position &mdash; players who grade out better than their star rating alone would suggest, and won't blow your NIL budget</li>
+                        <li>Use the <strong>Interested In</strong> filter to see only recruits who already have your school in their top schools list &mdash; a much shorter, more realistic list to actually pursue</li>
+                        <li>Toggle <strong>Blur OVR / SPD</strong> off only once you've formed your own opinion of a recruit's tape/profile &mdash; on by default so the raw numbers don't anchor your evaluation before you've looked at everything else</li>
                     </ul>
                 </div>
             </details>
-            <div class="toolbar">
-                <div class="toolbar-group">
-                    <label for="avgStarFilter">Star Rating</label>
-                    <select id="avgStarFilter">
-                        <option value="">All Recruits</option>
-                        <option value="5">5★ Only</option>
-                        <option value="4">4★ Only</option>
-                        <option value="3">3★ Only</option>
-                        <option value="2">2★ Only</option>
-                        <option value="1">1★ Only</option>
-                    </select>
+
+            <section class="results-panel hidden" id="resultsPanel">
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <label for="rangeSelect">Showing</label>
+                        <select id="rangeSelect"></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="posFilter">Position</label>
+                        <select id="posFilter"><option value="">All</option></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="starFilter">Stars</label>
+                        <select id="starFilter">
+                            <option value="">All</option>
+                            <option value="5">5★</option>
+                            <option value="4">4★</option>
+                            <option value="3">3★</option>
+                            <option value="2">2★</option>
+                            <option value="1">1★</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="stateFilter">State</label>
+                        <select id="stateFilter"><option value="">All</option></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="schoolFilter">Interested In</label>
+                        <select id="schoolFilter"><option value="">Any School</option></select>
+                    </div>
+                    <div class="toolbar-group search-group">
+                        <label for="searchBox">Search</label>
+                        <input type="text" id="searchBox" placeholder="Recruit name...">
+                    </div>
+                    <label class="toolbar-group blur-toggle-group toggle-switch-label" for="blurToggle">
+                        <span class="toggle-switch-text">Blur OVR / SPD</span>
+                        <input type="checkbox" id="blurToggle" checked>
+                        <span class="toggle-track" aria-hidden="true"></span>
+                    </label>
+                    <div class="toolbar-group result-count" id="resultCount"></div>
                 </div>
-            </div>
-            <div class="table-wrap">
-                <table id="averagesTable">
-                    <thead>
-                        <tr>
-                            <th>Position</th><th># Recruits</th><th>Avg OVR</th>
-                            <th>Avg SPD</th><th>Avg STR</th><th>Avg AWR</th>
-                            <th>Avg AGI</th><th>Avg ACC</th><th>Avg JMP</th>
-                            <th>Avg NIL</th>
-                        </tr>
-                    </thead>
-                    <tbody id="averagesBody"><tr><td colspan="10" class="empty-row">Load recruits in the Recruit Explorer tab to see the class landscape.</td></tr></tbody>
-                </table>
-            </div>
-        </section>
+
+                <div class="table-wrap">
+                    <table id="recruitTable">
+                        <thead>
+                            <tr>
+                                <th data-key="rank">National Rank</th>
+                                <th data-key="name">Recruit Name</th>
+                                <th data-key="position">POS</th>
+                                <th data-key="homeState">State</th>
+                                <th data-key="starsNum">Stars</th>
+                                <th data-key="overall">OVR</th>
+                                <th data-key="speed">SPD</th>
+                                <th data-key="nil">NIL</th>
+                                <th data-key="gem">Gem Status</th>
+                                <th data-key="rawRating">Raw Rating</th>
+                                <th data-key="nilAdjustedRating">NIL Adj. Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="pager">
+                    <button id="prevPage">&larr; Prev 25</button>
+                    <span id="pagerLabel"></span>
+                    <button id="nextPage">Next 25 &rarr;</button>
+                </div>
+            </section>
+        </div>
+
+        <div id="classLandscapeSubTab" class="sub-tab-panel">
+            <section class="averages-panel">
+                <details class="info-box">
+                    <summary>How this works &amp; why it matters</summary>
+                    <div class="info-box-body">
+                        <h4>What this page shows</h4>
+                        <p>The national average profile at each position, for <strong>this year's recruiting class specifically</strong> (not rostered players &mdash; see National Landscape for that). One row per position, sorted by highest average Overall first, so you can see at a glance which positions are loaded with talent this cycle and which are thin.</p>
+
+                        <h4>How it's calculated</h4>
+                        <ul>
+                            <li><strong>Avg OVR</strong> and the athletic ratings (Speed, Strength, Awareness, Agility, Acceleration, Jumping) are plain averages across every recruit at that position &mdash; filter by star rating first if you want, say, "average 4&#9733; QB" instead of "average QB regardless of star level"</li>
+                            <li><strong>Highlighted columns</strong> are the 2-3 ratings that matter most for that specific position (e.g. Speed/Agility/Jumping for WR, Strength/Awareness for offensive line) &mdash; everything else is shown too, just not emphasized</li>
+                            <li><strong>Avg NIL</strong> is the game's internal valuation index, not a literal dollar figure. Individual recruits with a below-zero value are floored at 0 before averaging, so a position's average NIL is never negative even if a few recruits there have below-baseline value</li>
+                        </ul>
+
+                        <h4>Why it matters</h4>
+                        <p>Ratings only mean something in context. A recruit with 88 Speed sounds great in isolation &mdash; but if the average CB this cycle is sitting at 90 Speed, that recruit is actually below par for the position. This page gives you that baseline so you can judge whether a specific recruit you're evaluating on the Recruit Explorer sub-tab is genuinely a standout, or just looks good until you compare them to their actual peer group.</p>
+
+                        <h4>How to use this page</h4>
+                        <ul>
+                            <li>Before committing to a target, check where their key ratings fall relative to this page's average for their position and star level</li>
+                            <li>Use the star filter to narrow the comparison &mdash; a 3&#9733; recruit should be judged against other 3&#9733;s, not the whole position pool</li>
+                            <li>Watch for positions with unusually high or low Avg NIL &mdash; that tells you where the market is expensive or a bargain this cycle</li>
+                        </ul>
+                    </div>
+                </details>
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <label for="avgStarFilter">Star Rating</label>
+                        <select id="avgStarFilter">
+                            <option value="">All Recruits</option>
+                            <option value="5">5★ Only</option>
+                            <option value="4">4★ Only</option>
+                            <option value="3">3★ Only</option>
+                            <option value="2">2★ Only</option>
+                            <option value="1">1★ Only</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table id="averagesTable">
+                        <thead>
+                            <tr>
+                                <th>Position</th><th># Recruits</th><th>Avg OVR</th>
+                                <th>Avg SPD</th><th>Avg STR</th><th>Avg AWR</th>
+                                <th>Avg AGI</th><th>Avg ACC</th><th>Avg JMP</th>
+                                <th>Avg NIL</th>
+                            </tr>
+                        </thead>
+                        <tbody id="averagesBody"><tr><td colspan="10" class="empty-row">Load recruits in the Recruit Explorer sub-tab to see the class landscape.</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
     </div>
 
     <div id="nationalTab" class="tab-panel">
@@ -229,7 +235,7 @@
                 <summary>How this works &amp; why it matters</summary>
                 <div class="info-box-body">
                     <h4>What this page shows</h4>
-                    <p>Everyone currently <strong>on a roster</strong> nationwide &mdash; not recruits. This is where you go to answer "how good does a team actually need to be at a position to compete at a given level," which the Class Landscape tab can't tell you since it's only looking at incoming prospects.</p>
+                    <p>Everyone currently <strong>on a roster</strong> nationwide &mdash; not recruits. This is where you go to answer "how good does a team actually need to be at a position to compete at a given level," which the Class Landscape sub-tab (under Recruit Explorer) can't tell you since it's only looking at incoming prospects.</p>
 
                     <h4>Team Tier</h4>
                     <p>Every team gets bucketed into one of 4 tiers based on the save's own 0-10 Team Prestige rating: <strong>Championship Caliber</strong> (7-10), <strong>Contending</strong> (5-6), <strong>Competing</strong> (3-4), <strong>Rebuilding</strong> (0-2). These cutoffs aren't arbitrary &mdash; they split all 138 real teams into four roughly even groups, so each tier represents a genuine quarter of the national landscape, not a skewed bucket.</p>

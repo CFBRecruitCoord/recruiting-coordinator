@@ -70,6 +70,37 @@ body {
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
 
+/* Sub-tabs (currently: Recruit Explorer vs. Class Landscape, nested inside
+   the Recruit Explorer top-level tab) - a segmented pill control rather
+   than the underlined top-tabs style, so it reads as "a view switch within
+   this page" instead of a sibling of the main nav. */
+.sub-tabs {
+    display: inline-flex;
+    gap: 2px;
+    margin: 4px 0 22px;
+    padding: 4px;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+}
+
+.sub-tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 9px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.sub-tab-btn:hover { color: var(--text); }
+.sub-tab-btn.active { background: var(--accent); color: var(--bg); }
+
+.sub-tab-panel { display: none; }
+.sub-tab-panel.active { display: block; }
+
 .upload-panel {
     margin-bottom: 32px;
 }

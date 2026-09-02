@@ -383,6 +383,18 @@
         });
     });
 
+    // Recruit Explorer / Class Landscape sub-tabs - same active-swap pattern
+    // as the top-level tabs above, just scoped to the one .sub-tabs group
+    // that currently exists on the page.
+    document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.sub-tab-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.subtab).classList.add('active');
+        });
+    });
+
     // ================= CLASS LANDSCAPE TAB =================
     avgStarFilter.addEventListener('change', computeAndRenderAverages);
 
