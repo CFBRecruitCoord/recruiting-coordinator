@@ -24,6 +24,7 @@
         <button class="tab-btn" data-tab="averagesTab">Class Landscape</button>
         <button class="tab-btn" data-tab="nationalTab">National Landscape</button>
         <button class="tab-btn" data-tab="targetsTab">Recruit Targets</button>
+        <button class="tab-btn hidden" data-tab="adminTab" id="adminTabBtn">Admin</button>
     </nav>
 
     <main class="main-content">
@@ -369,6 +370,40 @@
 
             <div id="targetsContainer">
                 <p class="empty-row">Load a save file in the Recruit Explorer tab to see recruit targets.</p>
+            </div>
+        </section>
+    </div>
+
+    <div id="adminTab" class="tab-panel">
+        <section class="averages-panel">
+            <h1 class="power-rankings-title">🛠️ Admin Dashboard</h1>
+            <p class="leaderboard-hint">Usage statistics for the hosted site &mdash; visible only to the admin account. Counts and metadata only; the app never stores the actual contents of anyone's uploaded save file.</p>
+            <button id="refreshAdminStatsBtn" class="refresh-btn">🔄 Refresh Stats</button>
+
+            <div id="adminStatsSummary" class="team-context-summary"></div>
+
+            <h2>Growth</h2>
+            <div class="table-wrap">
+                <table id="adminGrowthTable">
+                    <thead><tr><th>Window</th><th>New Signups</th><th>Successful Uploads</th></tr></thead>
+                    <tbody id="adminGrowthBody"><tr><td colspan="3" class="empty-row">Loading&hellip;</td></tr></tbody>
+                </table>
+            </div>
+
+            <h2>Recent Signups</h2>
+            <div class="table-wrap">
+                <table id="adminSignupsTable">
+                    <thead><tr><th>Email</th><th>Signed Up</th></tr></thead>
+                    <tbody id="adminSignupsBody"><tr><td colspan="2" class="empty-row">Loading&hellip;</td></tr></tbody>
+                </table>
+            </div>
+
+            <h2>Recent Upload Attempts</h2>
+            <div class="table-wrap">
+                <table id="adminUploadsTable">
+                    <thead><tr><th>User</th><th>When</th><th>Status</th><th>Recruits Found</th><th>Roster Size</th><th>Error</th></tr></thead>
+                    <tbody id="adminUploadsBody"><tr><td colspan="6" class="empty-row">Loading&hellip;</td></tr></tbody>
+                </table>
             </div>
         </section>
     </div>

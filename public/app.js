@@ -7,6 +7,7 @@
         const bar = document.getElementById('accountBar');
         const emailEl = document.getElementById('accountEmail');
         const logoutBtn = document.getElementById('logoutBtn');
+        const adminTabBtn = document.getElementById('adminTabBtn');
         if (!bar) return;
         try {
             const res = await fetch('/api/auth/me');
@@ -14,6 +15,14 @@
             if (data.user) {
                 emailEl.textContent = data.user.email;
                 bar.classList.remove('hidden');
+                // The tab button is just a convenience toggle - the real
+                // access control is server-side (isAdmin is resolved by the
+                // server, and /api/admin/stats independently enforces it),
+                // so there's nothing sensitive about revealing this client-side.
+                if (data.user.isAdmin && adminTabBtn) {
+                    adminTabBtn.classList.remove('hidden');
+                    loadAdminStats();
+                }
             }
         } catch (e) { /* not logged in / not hosted mode - leave hidden */ }
 
@@ -1288,5 +1297,79 @@
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    }
+
+    // ================= ADMIN TAB =================
+    // Only ever called after the server has confirmed the logged-in user is
+    // the admin (see initAccountBar above) - but /api/admin/stats enforces
+    // this independently regardless, so there's no real security reliance
+    // on this function only being called at the "right" time.
+    const refreshAdminStatsBtn = document.getElementById('refreshAdminStatsBtn');
+    if (refreshAdminStatsBtn) refreshAdminStatsBtn.addEventListener('click', loadAdminStats);
+
+    function formatDate(iso) {
+        if (!iso) return '&mdash;';
+        const d = new Date(iso);
+        return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) +
+            ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    }
+
+    async function loadAdminStats() {
+        const summary = document.getElementById('adminStatsSummary');
+        const growthBody = document.getElementById('adminGrowthBody');
+        const signupsBody = document.getElementById('adminSignupsBody');
+        const uploadsBody = document.getElementById('adminUploadsBody');
+        if (!summary) return;
+
+        try {
+            const res = await fetch('/api/admin/stats');
+            if (!res.ok) throw new Error('Failed to load admin stats (HTTP ' + res.status + ')');
+            const stats = await res.json();
+
+            summary.innerHTML = [
+                ['Total Signups', stats.totalUsers, 'accent'],
+                ['Successful Uploads', stats.totalUploads, ''],
+                ['Failed Uploads', stats.totalFailedUploads, ''],
+                ['Active Sessions', stats.activeSessions, '']
+            ].map(([label, value, cls]) => `
+                <div class="context-card">
+                    <div class="context-label">${label}</div>
+                    <div class="context-value ${cls}">${value}</div>
+                </div>
+            `).join('');
+
+            growthBody.innerHTML = stats.windows.map(w => `
+                <tr>
+                    <td class="name-cell">Last ${w.days} day${w.days === 1 ? '' : 's'}</td>
+                    <td>${w.newUsers}</td>
+                    <td>${w.uploads}</td>
+                </tr>
+            `).join('');
+
+            signupsBody.innerHTML = stats.recentSignups.length
+                ? stats.recentSignups.map(s => `
+                    <tr>
+                        <td>${escapeHtml(s.email)}</td>
+                        <td>${formatDate(s.createdAt)}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="2" class="empty-row">No signups yet.</td></tr>';
+
+            uploadsBody.innerHTML = stats.recentUploads.length
+                ? stats.recentUploads.map(u => `
+                    <tr>
+                        <td>${escapeHtml(u.email || '(unknown)')}</td>
+                        <td>${formatDate(u.createdAt)}</td>
+                        <td>${u.success ? '<span class="badge badge-gem">OK</span>' : '<span class="badge badge-bust">FAILED</span>'}</td>
+                        <td>${u.recruitCount ?? '&mdash;'}</td>
+                        <td>${u.rosterCount ?? '&mdash;'}</td>
+                        <td>${u.errorMessage ? escapeHtml(u.errorMessage) : '&mdash;'}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="6" class="empty-row">No upload attempts yet.</td></tr>';
+        } catch (err) {
+            console.error(err);
+            summary.innerHTML = `<p class="empty-row">${escapeHtml(err.message)}</p>`;
+        }
     }
 })();

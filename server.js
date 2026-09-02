@@ -13,6 +13,7 @@ const {
     signup, verifyLogin, createSession, destroySession, getUserForSession,
     requireAuth, setSessionCookie, clearSessionCookie, SESSION_COOKIE_NAME
 } = require('./lib/auth');
+const { isAdmin, requireAdmin, recordUploadEvent, getAdminStats } = require('./lib/adminStats');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -68,7 +69,25 @@ app.post('/api/auth/logout', (req, res) => {
 
 app.get('/api/auth/me', (req, res) => {
     const user = getUserForSession(req.cookies && req.cookies[SESSION_COOKIE_NAME]);
-    res.json({ user });
+    // isAdmin is resolved server-side and just handed to the client as a
+    // boolean - the admin email itself never needs to be known by the
+    // frontend, and the real access control lives on /api/admin/stats
+    // regardless of what this flag says.
+    res.json({ user: user ? { ...user, isAdmin: isAdmin(user) } : null });
+});
+
+// Always requires real auth + the admin check, regardless of MULTI_TENANT_MODE
+// (unlike most routes, which use apiGate and are wide open in personal mode) -
+// admin data should never be reachable without genuinely being logged in as
+// the admin. requireAdmin 404s rather than 403s for non-admins, so the
+// endpoint's existence isn't revealed to a logged-in-but-not-admin user.
+app.get('/api/admin/stats', requireAuth, requireAdmin, (req, res) => {
+    try {
+        res.json(getAdminStats());
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load admin stats.', details: err.message });
+    }
 });
 
 // ---- The app itself: gated behind login only in hosted mode ----
@@ -103,9 +122,16 @@ app.post('/api/upload', apiGate, upload.single('saveFile'), async (req, res) => 
         const recruits = await parseRecruits(franchise);
         const roster = await parseRosterLandscape(franchise);
         const userTeam = await parseUserTeamContext(franchise);
+        recordUploadEvent({
+            userId: req.user && req.user.id,
+            success: true,
+            recruitCount: recruits.length,
+            rosterCount: roster.length
+        });
         res.json({ count: recruits.length, recruits, rosterCount: roster.length, roster, userTeam });
     } catch (err) {
         console.error(err);
+        recordUploadEvent({ userId: req.user && req.user.id, success: false, errorMessage: err.message });
         res.status(500).json({ error: 'Failed to parse save file. Make sure this is a valid EA Sports College Football 27 dynasty save.', details: err.message });
     } finally {
         fs.unlink(req.file.path, () => {});
