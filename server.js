@@ -14,6 +14,9 @@ const {
     requireAuth, setSessionCookie, clearSessionCookie, SESSION_COOKIE_NAME
 } = require('./lib/auth');
 const { isAdmin, requireAdmin, recordUploadEvent, getAdminStats } = require('./lib/adminStats');
+const {
+    submitFeedback, listFeedbackForUser, listFeedback, updateFeedbackStatus, getFeedbackCounts
+} = require('./lib/feedback');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -90,6 +93,29 @@ app.get('/api/admin/stats', requireAuth, requireAdmin, (req, res) => {
     }
 });
 
+// Same admin-only gating as /api/admin/stats above - never reachable
+// without being genuinely logged in as the admin, regardless of mode.
+app.get('/api/admin/feedback', requireAuth, requireAdmin, (req, res) => {
+    try {
+        res.json({
+            items: listFeedback({ status: req.query.status, type: req.query.type }),
+            counts: getFeedbackCounts()
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load feedback.', details: err.message });
+    }
+});
+
+app.post('/api/admin/feedback/:id/status', requireAuth, requireAdmin, (req, res) => {
+    try {
+        updateFeedbackStatus(req.params.id, req.body.status);
+        res.json({ ok: true });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
 // ---- The app itself: gated behind login only in hosted mode ----
 function pageGate(req, res, next) {
     if (!MULTI_TENANT_MODE) return next();
@@ -108,6 +134,36 @@ app.get('/', pageGate, (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
+
+// User-facing comment/bug report submission (the feedback.html page linked
+// from the account bar). Gated like most routes - wide open in personal
+// mode (harmless there, just a local row nobody reviews), real auth
+// required in hosted mode so every submission is attributable to an account.
+app.post('/api/feedback', apiGate, (req, res) => {
+    try {
+        submitFeedback({
+            userId: req.user && req.user.id,
+            type: req.body.type,
+            message: req.body.message,
+            pageContext: req.body.pageContext
+        });
+        res.json({ ok: true });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+// A user's own submission history - never anyone else's, so this is safe
+// to leave behind the same apiGate as everything else rather than requiring
+// the stricter requireAdmin used by /api/admin/feedback above.
+app.get('/api/feedback/mine', apiGate, (req, res) => {
+    try {
+        res.json({ items: req.user ? listFeedbackForUser(req.user.id) : [] });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load your feedback.', details: err.message });
+    }
+});
 
 app.post('/api/upload', apiGate, upload.single('saveFile'), async (req, res) => {
     if (!req.file) {

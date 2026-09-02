@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Feedback &amp; Bug Reports &mdash; Recruiting Coordinator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+    .feedback-wrap { max-width: 660px; margin: 0 auto; padding: 24px 24px 80px; }
+    .feedback-topbar { padding: 16px 0 0; }
+    .feedback-header { margin: 20px 0 20px; }
+    .feedback-header h1 { font-size: 22px; margin: 0 0 4px; }
+    .feedback-header p { color: var(--text-dim); font-size: 13px; margin: 0; }
+    .feedback-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; margin-bottom: 24px; }
+    .feedback-whoami { color: var(--text-dim); font-size: 12px; margin: 0 0 16px; }
+    .feedback-whoami strong { color: var(--text); }
+    .feedback-type-toggle { display: flex; gap: 8px; margin-bottom: 18px; }
+    .feedback-type-btn {
+        flex: 1; background: var(--panel-alt); border: 1px solid var(--border); color: var(--text-dim);
+        padding: 12px; border-radius: 8px; cursor: pointer; font-size: 13.5px; font-weight: 600;
+        text-align: center; font-family: inherit; transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    }
+    .feedback-type-btn:hover { color: var(--text); }
+    .feedback-type-btn.active { border-color: var(--accent); color: var(--text); background: rgba(255, 107, 53, 0.14); }
+    .feedback-field { margin-bottom: 16px; }
+    .feedback-field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+    .feedback-field select, .feedback-field textarea {
+        width: 100%; background: var(--panel-alt); border: 1px solid var(--border); color: var(--text);
+        padding: 10px 12px; border-radius: 6px; font-size: 14px; font-family: inherit;
+    }
+    .feedback-field textarea { min-height: 140px; resize: vertical; line-height: 1.5; }
+    .feedback-char-count { text-align: right; font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+    .feedback-submit-row { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+    .feedback-history-item { border-bottom: 1px solid var(--border); padding: 14px 0; }
+    .feedback-history-item:last-child { border-bottom: none; padding-bottom: 2px; }
+    .feedback-history-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .feedback-history-meta { font-weight: 600; font-size: 13px; color: var(--text); }
+    .feedback-history-page { color: var(--text-dim); font-weight: 400; }
+    .feedback-history-message { margin: 8px 0 4px; font-size: 13px; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+    .feedback-history-date { margin: 0; font-size: 11px; color: var(--text-dim); }
+</style>
+</head>
+<body>
+<div class="feedback-wrap">
+    <div class="feedback-topbar"><a href="/" class="link-btn">&larr; Back to app</a></div>
+
+    <div class="feedback-header">
+        <h1>💬 Feedback &amp; Bug Reports</h1>
+        <p>Spot a bug, or just have a suggestion for Recruiting Coordinator? Every submission goes straight to the admin for review.</p>
+    </div>
+
+    <div id="loggedOutNotice" class="feedback-card hidden">
+        <p style="margin: 0 0 14px;">You need to be logged in to submit feedback or view your past submissions.</p>
+        <a href="/login.html" class="refresh-btn" style="display: inline-block; text-decoration: none;">Log In</a>
+    </div>
+
+    <div id="feedbackFormCard" class="feedback-card hidden">
+        <p class="feedback-whoami">Submitting as <strong id="feedbackUserEmail"></strong></p>
+
+        <div class="feedback-type-toggle">
+            <button type="button" class="feedback-type-btn active" data-type="comment">💡 General Comment</button>
+            <button type="button" class="feedback-type-btn" data-type="bug">🐛 Bug Report</button>
+        </div>
+
+        <form id="feedbackForm">
+            <div class="feedback-field">
+                <label for="pageContext">Which page is this about? (optional)</label>
+                <select id="pageContext">
+                    <option value="">Not sure / general</option>
+                    <option value="Recruit Explorer">Recruit Explorer</option>
+                    <option value="Class Landscape">Class Landscape</option>
+                    <option value="National Landscape">National Landscape</option>
+                    <option value="Recruit Targets">Recruit Targets</option>
+                    <option value="Coordinator Settings">Coordinator Settings</option>
+                    <option value="Account / Login">Account / Login</option>
+                </select>
+            </div>
+            <div class="feedback-field">
+                <label for="feedbackMessage" id="feedbackMessageLabel">What's on your mind?</label>
+                <textarea id="feedbackMessage" maxlength="5000" required
+                    placeholder="Ideas, requests, anything you'd like to see..."></textarea>
+                <div class="feedback-char-count"><span id="feedbackCharCount">0</span> / 5000</div>
+            </div>
+            <div id="feedbackStatus" class="upload-status"></div>
+            <div class="feedback-submit-row">
+                <button type="submit" class="refresh-btn" id="feedbackSubmitBtn">Submit Comment</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="feedback-header" style="margin-top: 4px;">
+        <h1 style="font-size: 16px;">Your Submissions</h1>
+        <p>Status updates here once the admin reviews each one.</p>
+    </div>
+    <div id="feedbackHistory" class="feedback-card">
+        <p class="empty-row">Loading&hellip;</p>
+    </div>
+</div>
+
+<script>
+(async function () {
+    const loggedOutNotice = document.getElementById('loggedOutNotice');
+    const formCard = document.getElementById('feedbackFormCard');
+    const userEmailEl = document.getElementById('feedbackUserEmail');
+    const historyEl = document.getElementById('feedbackHistory');
+    const typeButtons = document.querySelectorAll('.feedback-type-btn');
+    const messageLabel = document.getElementById('feedbackMessageLabel');
+    const messageInput = document.getElementById('feedbackMessage');
+    const charCount = document.getElementById('feedbackCharCount');
+    const pageContextSelect = document.getElementById('pageContext');
+    const submitBtn = document.getElementById('feedbackSubmitBtn');
+    const statusEl = document.getElementById('feedbackStatus');
+    const form = document.getElementById('feedbackForm');
+    let currentType = 'comment';
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    typeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            typeButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentType = btn.dataset.type;
+            const isBug = currentType === 'bug';
+            messageLabel.textContent = isBug
+                ? 'Describe the bug: what happened, what you expected instead, and steps to reproduce it if you can'
+                : "What's on your mind?";
+            messageInput.placeholder = isBug
+                ? 'e.g. "On Recruit Targets, after switching Team Direction to Compete Now and hitting Refresh, the Day One Starters section stayed empty even though I have several 5-star recruits interested..."'
+                : "Ideas, requests, anything you'd like to see...";
+            submitBtn.textContent = isBug ? 'Submit Bug Report' : 'Submit Comment';
+        });
+    });
+
+    messageInput.addEventListener('input', () => {
+        charCount.textContent = messageInput.value.length;
+    });
+
+    function statusBadge(status) {
+        const labels = { new: 'New', reviewed: 'Reviewed', resolved: 'Resolved' };
+        return `<span class="fb-badge fb-badge-${status}">${labels[status] || status}</span>`;
+    }
+
+    function typeBadge(type) {
+        return type === 'bug'
+            ? '<span class="fb-type-badge fb-type-bug">🐛 Bug</span>'
+            : '<span class="fb-type-badge fb-type-comment">💡 Comment</span>';
+    }
+
+    async function loadHistory() {
+        try {
+            const res = await fetch('/api/feedback/mine');
+            const data = await res.json();
+            const items = data.items || [];
+            historyEl.innerHTML = items.length
+                ? items.map(item => `
+                    <div class="feedback-history-item">
+                        <div class="feedback-history-top">
+                            <span class="feedback-history-meta">
+                                ${typeBadge(item.type)}
+                                ${item.pageContext ? `<span class="feedback-history-page">&middot; ${escapeHtml(item.pageContext)}</span>` : ''}
+                            </span>
+                            ${statusBadge(item.status)}
+                        </div>
+                        <p class="feedback-history-message">${escapeHtml(item.message)}</p>
+                        <p class="feedback-history-date">${new Date(item.createdAt).toLocaleString()}</p>
+                    </div>
+                `).join('')
+                : '<p class="empty-row">You haven\'t submitted anything yet.</p>';
+        } catch (err) {
+            console.error(err);
+            historyEl.innerHTML = '<p class="empty-row">Failed to load your submissions.</p>';
+        }
+    }
+
+    form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const message = messageInput.value.trim();
+        if (!message) return;
+        submitBtn.disabled = true;
+        statusEl.textContent = 'Submitting...';
+        statusEl.className = 'upload-status loading';
+        try {
+            const res = await fetch('/api/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: currentType,
+                    message,
+                    pageContext: pageContextSelect.value || null
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to submit.');
+            statusEl.textContent = `Thanks! Your ${currentType === 'bug' ? 'bug report' : 'comment'} has been submitted.`;
+            statusEl.className = 'upload-status success';
+            messageInput.value = '';
+            charCount.textContent = '0';
+            loadHistory();
+        } catch (err) {
+            statusEl.textContent = err.message;
+            statusEl.className = 'upload-status error';
+        } finally {
+            submitBtn.disabled = false;
+        }
+    });
+
+    let me = null;
+    try {
+        const res = await fetch('/api/auth/me');
+        const data = await res.json();
+        me = data.user;
+    } catch (e) { /* not hosted mode / request failed - treat as logged out */ }
+
+    if (!me) {
+        loggedOutNotice.classList.remove('hidden');
+        historyEl.innerHTML = '<p class="empty-row">Log in to see your submissions.</p>';
+        return;
+    }
+
+    formCard.classList.remove('hidden');
+    userEmailEl.textContent = me.email;
+    loadHistory();
+})();
+</script>
+</body>
+</html>

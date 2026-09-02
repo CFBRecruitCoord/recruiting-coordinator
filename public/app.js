@@ -22,6 +22,7 @@
                 if (data.user.isAdmin && adminTabBtn) {
                     adminTabBtn.classList.remove('hidden');
                     loadAdminStats();
+                    loadAdminFeedback();
                 }
             }
         } catch (e) { /* not logged in / not hosted mode - leave hidden */ }
@@ -1720,6 +1721,94 @@
                     </tr>
                 `).join('')
                 : '<tr><td colspan="6" class="empty-row">No upload attempts yet.</td></tr>';
+        } catch (err) {
+            console.error(err);
+            summary.innerHTML = `<p class="empty-row">${escapeHtml(err.message)}</p>`;
+        }
+    }
+
+    // ---- Admin: Feedback & Bugs sub-tab ----
+    const refreshAdminFeedbackBtn = document.getElementById('refreshAdminFeedbackBtn');
+    const feedbackStatusFilter = document.getElementById('feedbackStatusFilter');
+    const feedbackTypeFilter = document.getElementById('feedbackTypeFilter');
+    if (refreshAdminFeedbackBtn) refreshAdminFeedbackBtn.addEventListener('click', loadAdminFeedback);
+    if (feedbackStatusFilter) feedbackStatusFilter.addEventListener('change', loadAdminFeedback);
+    if (feedbackTypeFilter) feedbackTypeFilter.addEventListener('change', loadAdminFeedback);
+
+    function fbTypeBadge(type) {
+        return type === 'bug'
+            ? '<span class="fb-type-badge fb-type-bug">🐛 Bug</span>'
+            : '<span class="fb-type-badge fb-type-comment">💡 Comment</span>';
+    }
+
+    async function loadAdminFeedback() {
+        const summary = document.getElementById('adminFeedbackSummary');
+        const body = document.getElementById('adminFeedbackBody');
+        if (!summary || !body) return;
+
+        const params = new URLSearchParams();
+        if (feedbackStatusFilter && feedbackStatusFilter.value) params.set('status', feedbackStatusFilter.value);
+        if (feedbackTypeFilter && feedbackTypeFilter.value) params.set('type', feedbackTypeFilter.value);
+
+        try {
+            const res = await fetch('/api/admin/feedback?' + params.toString());
+            if (!res.ok) throw new Error('Failed to load feedback (HTTP ' + res.status + ')');
+            const data = await res.json();
+            const counts = data.counts || {};
+
+            summary.innerHTML = [
+                ['Total Submissions', counts.total ?? 0, ''],
+                ['New (Unreviewed)', counts.newCount ?? 0, 'accent'],
+                ['Bug Reports', counts.bugCount ?? 0, ''],
+                ['General Comments', counts.commentCount ?? 0, '']
+            ].map(([label, value, cls]) => `
+                <div class="context-card">
+                    <div class="context-label">${label}</div>
+                    <div class="context-value ${cls}">${value}</div>
+                </div>
+            `).join('');
+
+            const items = data.items || [];
+            body.innerHTML = items.length
+                ? items.map(f => `
+                    <tr>
+                        <td>${fbTypeBadge(f.type)}</td>
+                        <td>${f.pageContext ? escapeHtml(f.pageContext) : '&mdash;'}</td>
+                        <td class="fb-message-cell">${escapeHtml(f.message)}</td>
+                        <td>${escapeHtml(f.email || '(unknown)')}</td>
+                        <td>${formatDate(f.createdAt)}</td>
+                        <td>
+                            <select data-feedback-id="${f.id}">
+                                <option value="new" ${f.status === 'new' ? 'selected' : ''}>New</option>
+                                <option value="reviewed" ${f.status === 'reviewed' ? 'selected' : ''}>Reviewed</option>
+                                <option value="resolved" ${f.status === 'resolved' ? 'selected' : ''}>Resolved</option>
+                            </select>
+                        </td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="6" class="empty-row">No feedback matches these filters.</td></tr>';
+
+            body.querySelectorAll('select[data-feedback-id]').forEach(select => {
+                select.addEventListener('change', async () => {
+                    const id = select.dataset.feedbackId;
+                    const newStatus = select.value;
+                    select.disabled = true;
+                    try {
+                        const res = await fetch(`/api/admin/feedback/${id}/status`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: newStatus })
+                        });
+                        if (!res.ok) throw new Error('Failed to update status');
+                        // Refresh the summary counts (New count especially) without
+                        // losing the current filter selection or scroll position.
+                        loadAdminFeedback();
+                    } catch (err) {
+                        console.error(err);
+                        select.disabled = false;
+                    }
+                });
+            });
         } catch (err) {
             console.error(err);
             summary.innerHTML = `<p class="empty-row">${escapeHtml(err.message)}</p>`;

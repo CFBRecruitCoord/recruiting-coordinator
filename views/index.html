@@ -12,8 +12,11 @@
 <div class="app">
     <header class="app-header">
         <div id="accountBar" class="account-bar hidden">
-            <span id="accountEmail"></span>
-            <button id="logoutBtn" class="link-btn">Log out</button>
+            <div class="account-bar-row">
+                <span id="accountEmail"></span>
+                <button id="logoutBtn" class="link-btn">Log out</button>
+            </div>
+            <a href="/feedback.html" class="link-btn">💬 Leave Comment / Report Bug</a>
         </div>
         <h1>🏈 Recruiting Coordinator</h1>
         <p class="subtitle">Upload a CFB 27 dynasty save to explore its recruiting class. Spun out from Dynasty Tracker so this tool can be iterated on independently.</p>
@@ -445,33 +448,79 @@
     <div id="adminTab" class="tab-panel">
         <section class="averages-panel">
             <h1 class="power-rankings-title">🛠️ Admin Dashboard</h1>
-            <p class="leaderboard-hint">Usage statistics for the hosted site &mdash; visible only to the admin account. Counts and metadata only; the app never stores the actual contents of anyone's uploaded save file.</p>
-            <button id="refreshAdminStatsBtn" class="refresh-btn">🔄 Refresh Stats</button>
+            <p class="leaderboard-hint">Usage statistics and user feedback for the hosted site &mdash; visible only to the admin account. Counts and metadata only; the app never stores the actual contents of anyone's uploaded save file.</p>
 
-            <div id="adminStatsSummary" class="team-context-summary"></div>
-
-            <h2>Growth</h2>
-            <div class="table-wrap">
-                <table id="adminGrowthTable">
-                    <thead><tr><th>Window</th><th>New Signups</th><th>Successful Uploads</th></tr></thead>
-                    <tbody id="adminGrowthBody"><tr><td colspan="3" class="empty-row">Loading&hellip;</td></tr></tbody>
-                </table>
+            <div class="sub-tabs">
+                <button class="sub-tab-btn active" data-subtab="adminStatsSubTab">📊 Usage Stats</button>
+                <button class="sub-tab-btn" data-subtab="adminFeedbackSubTab">💬 Feedback &amp; Bugs</button>
             </div>
 
-            <h2>Recent Signups</h2>
-            <div class="table-wrap">
-                <table id="adminSignupsTable">
-                    <thead><tr><th>Email</th><th>Signed Up</th></tr></thead>
-                    <tbody id="adminSignupsBody"><tr><td colspan="2" class="empty-row">Loading&hellip;</td></tr></tbody>
-                </table>
+            <div id="adminStatsSubTab" class="sub-tab-panel active">
+                <button id="refreshAdminStatsBtn" class="refresh-btn">🔄 Refresh Stats</button>
+
+                <div id="adminStatsSummary" class="team-context-summary"></div>
+
+                <h2>Growth</h2>
+                <div class="table-wrap">
+                    <table id="adminGrowthTable">
+                        <thead><tr><th>Window</th><th>New Signups</th><th>Successful Uploads</th></tr></thead>
+                        <tbody id="adminGrowthBody"><tr><td colspan="3" class="empty-row">Loading&hellip;</td></tr></tbody>
+                    </table>
+                </div>
+
+                <h2>Recent Signups</h2>
+                <div class="table-wrap">
+                    <table id="adminSignupsTable">
+                        <thead><tr><th>Email</th><th>Signed Up</th></tr></thead>
+                        <tbody id="adminSignupsBody"><tr><td colspan="2" class="empty-row">Loading&hellip;</td></tr></tbody>
+                    </table>
+                </div>
+
+                <h2>Recent Upload Attempts</h2>
+                <div class="table-wrap">
+                    <table id="adminUploadsTable">
+                        <thead><tr><th>User</th><th>When</th><th>Status</th><th>Recruits Found</th><th>Roster Size</th><th>Error</th></tr></thead>
+                        <tbody id="adminUploadsBody"><tr><td colspan="6" class="empty-row">Loading&hellip;</td></tr></tbody>
+                    </table>
+                </div>
             </div>
 
-            <h2>Recent Upload Attempts</h2>
-            <div class="table-wrap">
-                <table id="adminUploadsTable">
-                    <thead><tr><th>User</th><th>When</th><th>Status</th><th>Recruits Found</th><th>Roster Size</th><th>Error</th></tr></thead>
-                    <tbody id="adminUploadsBody"><tr><td colspan="6" class="empty-row">Loading&hellip;</td></tr></tbody>
-                </table>
+            <div id="adminFeedbackSubTab" class="sub-tab-panel">
+                <p class="leaderboard-hint">Every comment and bug report submitted from the "Leave Comment / Report Bug" link, newest first. <strong>New</strong> = not yet looked at, <strong>Reviewed</strong> = seen but not yet acted on, <strong>Resolved</strong> = done. Change the Status dropdown on any row to update it &mdash; the submitting user sees that status the next time they check their own submissions.</p>
+
+                <div class="toolbar">
+                    <button id="refreshAdminFeedbackBtn" class="refresh-btn">🔄 Refresh Feedback</button>
+                    <div class="toolbar-group">
+                        <label for="feedbackStatusFilter">Status</label>
+                        <select id="feedbackStatusFilter">
+                            <option value="">All</option>
+                            <option value="new">New</option>
+                            <option value="reviewed">Reviewed</option>
+                            <option value="resolved">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="feedbackTypeFilter">Type</label>
+                        <select id="feedbackTypeFilter">
+                            <option value="">All</option>
+                            <option value="bug">Bug Reports</option>
+                            <option value="comment">Comments</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="adminFeedbackSummary" class="team-context-summary"></div>
+
+                <div class="table-wrap">
+                    <table id="adminFeedbackTable">
+                        <thead>
+                            <tr>
+                                <th>Type</th><th>Page</th><th>Message</th><th>User</th><th>Submitted</th><th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminFeedbackBody"><tr><td colspan="6" class="empty-row">Loading&hellip;</td></tr></tbody>
+                    </table>
+                </div>
             </div>
         </section>
     </div>
