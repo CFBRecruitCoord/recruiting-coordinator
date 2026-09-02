@@ -240,6 +240,7 @@
             allRecruits = data.recruits;
             allRosterPlayers = data.roster || [];
             userTeamContext = data.userTeam || null;
+            recomputeEffectiveRatings();
             setStatus(`Loaded ${data.count} recruits and ${data.rosterCount || 0} rostered players from ${file.name}.`, 'success');
             resultsPanel.classList.remove('hidden');
             populateFilterOptions();
@@ -344,6 +345,7 @@
             allRecruits = data.recruits;
             allRosterPlayers = data.roster || [];
             userTeamContext = data.userTeam || null;
+            recomputeEffectiveRatings();
             setStatus(`Loaded ${data.count} recruits and ${data.rosterCount || 0} rostered players from the configured save file.`, 'success');
             resultsPanel.classList.remove('hidden');
             populateFilterOptions();
@@ -950,6 +952,24 @@
     const ARCHETYPE_BONUS = 5;     // matches one of the up-to-2 preferred archetypes
     const ARCHETYPE_PENALTY = 5;   // matches the one archetype flagged to avoid
 
+    // "Ignore Gem/Bust Status" strips the Gem/Bust adjustment back out of
+    // every calculation that uses it. The server always sends rawRating/
+    // nilAdjustedRating WITH a Gem's +0.5 baked in (see parseRecruits.js;
+    // Busts were never a rawRating penalty to begin with, so there's nothing
+    // to remove there), so these Effective variants are recomputed here on
+    // the client rather than re-uploading - subtract the recruit's own
+    // gemBonus back out when the toggle is on, leave it untouched otherwise.
+    // Called once whenever recruit data loads and again any time the toggle
+    // changes, so every reader (table display/sort, talent percentiles,
+    // Recruit Targets' own gemAdj term) sees a consistent, current value.
+    function recomputeEffectiveRatings() {
+        const ignore = coordinatorSettings.ignoreGemBustStatus;
+        allRecruits.forEach(r => {
+            r.rawRatingEffective = ignore ? +(r.rawRating - (r.gemBonus || 0)).toFixed(2) : r.rawRating;
+            r.nilAdjustedRatingEffective = +(r.rawRatingEffective + r.nilAdjustment).toFixed(2);
+        });
+    }
+
     function computeRecruitTargetCandidates() {
         if (!allRecruits.length || !userTeamContext) return [];
 
@@ -959,7 +979,7 @@
         const eligibleRecruits = allRecruits.filter(r => !EXCLUDED_TARGET_POSITIONS.has(r.position));
 
         const positionNeeds = computePositionNeeds();
-        const talentPercentiles = ordinalPercentiles(eligibleRecruits, r => r.rawRating);
+        const talentPercentiles = ordinalPercentiles(eligibleRecruits, r => r.rawRatingEffective);
         const nilPercentiles = ordinalPercentiles(eligibleRecruits, r => r.nilAdjustment);
 
         // Position-scoped attribute percentiles, built lazily per position+
@@ -989,7 +1009,7 @@
             const need = positionNeeds.get(r.position) || { needScore: 0 };
             const geo = geoFitScore(r);
             const interestScore = r.userTeamInterest != null ? clamp(r.userTeamInterest, 0, 100) : 0;
-            const gemAdj = r.gem === 'GEM' ? 8 : (r.gem === 'BUST' ? -8 : 0);
+            const gemAdj = coordinatorSettings.ignoreGemBustStatus ? 0 : (r.gem === 'GEM' ? 8 : (r.gem === 'BUST' ? -8 : 0));
             const talentPercentile = talentPercentiles[i];
             const nilPercentile = nilPercentiles[i];
 
@@ -1397,8 +1417,21 @@
         hideToggle.checked = coordinatorSettings.hideGemBustStatus;
         ignoreToggle.checked = coordinatorSettings.ignoreGemBustStatus;
 
-        hideToggle.onchange = () => { coordinatorSettings.hideGemBustStatus = hideToggle.checked; };
-        ignoreToggle.onchange = () => { coordinatorSettings.ignoreGemBustStatus = ignoreToggle.checked; };
+        // Both toggles apply instantly to the Recruit Explorer tab (there's
+        // no "refresh" step there) - hiding/showing the badge and, for
+        // Ignore, recomputing the Raw/NIL Adj. Rating columns right away.
+        // The Recruit Targets board is intentionally NOT re-rendered here -
+        // like every other Coordinator Settings change, it only takes effect
+        // once "Refresh Recruit Targets" is clicked.
+        hideToggle.onchange = () => {
+            coordinatorSettings.hideGemBustStatus = hideToggle.checked;
+            if (allRecruits.length) applyFiltersAndSort();
+        };
+        ignoreToggle.onchange = () => {
+            coordinatorSettings.ignoreGemBustStatus = ignoreToggle.checked;
+            recomputeEffectiveRatings();
+            if (allRecruits.length) applyFiltersAndSort();
+        };
     }
 
     function initSettingsTab() {
@@ -1422,6 +1455,8 @@
             renderTeamDirectionCards();
             renderGemBustToggles();
             renderPositionPrioritiesTable();
+            recomputeEffectiveRatings();
+            if (allRecruits.length) applyFiltersAndSort();
             status.textContent = '';
             status.className = 'upload-status';
         });
@@ -1505,8 +1540,14 @@
             return true;
         });
 
+        // Sorting/display by Raw Rating or NIL Adj. Rating always reflects
+        // the current Ignore Gem/Bust Status preference (see
+        // recomputeEffectiveRatings) rather than the server's original value.
+        const effectiveSortKey = sortKey === 'rawRating' ? 'rawRatingEffective'
+            : sortKey === 'nilAdjustedRating' ? 'nilAdjustedRatingEffective'
+            : sortKey;
         filteredSorted.sort((a, b) => {
-            let av = a[sortKey], bv = b[sortKey];
+            let av = a[effectiveSortKey], bv = b[effectiveSortKey];
             if (typeof av === 'string') av = av.toLowerCase();
             if (typeof bv === 'string') bv = bv.toLowerCase();
             if (av < bv) return sortDir === 'asc' ? -1 : 1;
@@ -1554,8 +1595,8 @@
                 <td class="blur-target">${r.speed}</td>
                 <td class="blur-target">${r.nil}</td>
                 <td>${gemBadge(r.gem)}</td>
-                <td class="rating-cell ${ratingClass(r.rawRating)}">${r.rawRating.toFixed(2)}</td>
-                <td class="rating-cell ${ratingClass(r.nilAdjustedRating)}">${r.nilAdjustedRating.toFixed(2)}</td>
+                <td class="rating-cell ${ratingClass(r.rawRatingEffective)}">${r.rawRatingEffective.toFixed(2)}</td>
+                <td class="rating-cell ${ratingClass(r.nilAdjustedRatingEffective)}">${r.nilAdjustedRatingEffective.toFixed(2)}</td>
             </tr>
         `).join('');
 
@@ -1581,6 +1622,10 @@
     }
 
     function gemBadge(status) {
+        // "Hide Gem/Bust Status" only hides this badge - the underlying
+        // rating/scoring math is untouched by this toggle (see the separate
+        // "Ignore Gem/Bust Status" toggle for that).
+        if (coordinatorSettings.hideGemBustStatus) return '';
         const cls = status === 'GEM' ? 'badge-gem' : status === 'BUST' ? 'badge-bust' : 'badge-normal';
         return `<span class="badge ${cls}">${status}</span>`;
     }
