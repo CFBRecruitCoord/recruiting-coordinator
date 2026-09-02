@@ -17,6 +17,7 @@ const { isAdmin, requireAdmin, recordUploadEvent, getAdminStats, pruneOldUploadE
 const {
     submitFeedback, listFeedbackForUser, listFeedback, updateFeedbackStatus, getFeedbackCounts
 } = require('./lib/feedback');
+const { trackVisit, pruneOldVisits } = require('./lib/visitors');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -69,6 +70,16 @@ function sweepOrphanedUploads() {
 
 app.use(cookieParser());
 app.use(express.json());
+
+// Anonymous unique-visitor counter for the admin tab (see lib/visitors.js).
+// Mounted before pageGate/static so it still counts someone who gets
+// redirected straight to /login.html, or who loads login.html/signup.html
+// directly without ever creating an account. Hosted mode only - there's no
+// "visitors" concept for a single local user, and running it in personal
+// mode would create auth.db just to hold an unused table.
+if (MULTI_TENANT_MODE) {
+    app.use(trackVisit);
+}
 
 // ---- Auth (always mounted, but meaningless/unused unless MULTI_TENANT_MODE) ----
 app.post('/api/auth/signup', async (req, res) => {
@@ -299,14 +310,15 @@ process.on('unhandledRejection', reason => {
 // try/finally in /api/upload). sweepOrphanedUploads() is just a safety net
 // for the one way that cleanup can be skipped: a hard crash mid-request.
 //
-// The one thing on the actual persistent volume that has no other
-// cleanup is the upload_events log in auth.db (sessions already
-// self-expire; users/feedback are real product data, deliberately left
-// alone). Run both sweeps once at startup - so a redeploy doesn't wait a
-// full interval before the first cleanup - then on a recurring timer.
+// The things on the actual persistent volume that have no other cleanup
+// are the upload_events log and the site_visits log in auth.db (sessions
+// already self-expire; users/feedback are real product data, deliberately
+// left alone). Run both sweeps once at startup - so a redeploy doesn't
+// wait a full interval before the first cleanup - then on a recurring timer.
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const ONE_DAY_MS = 24 * ONE_HOUR_MS;
 const UPLOAD_EVENT_RETENTION_DAYS = 90;
+const SITE_VISIT_RETENTION_DAYS = 90;
 
 sweepOrphanedUploads();
 setInterval(sweepOrphanedUploads, ONE_HOUR_MS);
@@ -319,13 +331,24 @@ function pruneUploadEventsLog() {
         console.error('Failed to prune old upload_events rows:', err);
     }
 }
-// Hosted mode only - this table is only ever written to when there's a
-// logged-in user (see recordUploadEvent's early return), so in personal
-// mode auth.db never even gets created; running this unconditionally
-// would create it anyway for nothing.
+function pruneSiteVisitsLog() {
+    try {
+        const deleted = pruneOldVisits(SITE_VISIT_RETENTION_DAYS);
+        if (deleted > 0) console.log(`Pruned ${deleted} site_visits row(s) older than ${SITE_VISIT_RETENTION_DAYS} days.`);
+    } catch (err) {
+        console.error('Failed to prune old site_visits rows:', err);
+    }
+}
+// Hosted mode only - these tables are only ever written to in hosted mode
+// (recordUploadEvent no-ops without a logged-in user, and trackVisit is
+// never mounted at all in personal mode - see above), so auth.db never
+// even gets created there; running this unconditionally would create it
+// anyway for nothing.
 if (MULTI_TENANT_MODE) {
     pruneUploadEventsLog();
     setInterval(pruneUploadEventsLog, ONE_DAY_MS);
+    pruneSiteVisitsLog();
+    setInterval(pruneSiteVisitsLog, ONE_DAY_MS);
 }
 
 app.listen(PORT, () => {

@@ -1718,6 +1718,7 @@
             const stats = await res.json();
 
             summary.innerHTML = [
+                ['Unique Visitors', stats.totalUniqueVisitors, 'accent'],
                 ['Total Signups', stats.totalUsers, 'accent'],
                 ['Successful Uploads', stats.totalUploads, ''],
                 ['Failed Uploads', stats.totalFailedUploads, ''],
@@ -1732,6 +1733,7 @@
             growthBody.innerHTML = stats.windows.map(w => `
                 <tr>
                     <td class="name-cell">Last ${w.days} day${w.days === 1 ? '' : 's'}</td>
+                    <td>${w.uniqueVisitors}</td>
                     <td>${w.newUsers}</td>
                     <td>${w.uploads}</td>
                 </tr>
