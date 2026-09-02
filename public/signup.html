@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sign Up &mdash; Recruiting Coordinator</title>
+<link rel="stylesheet" href="style.css">
+<style>
+    .auth-wrap { max-width: 380px; margin: 80px auto; padding: 0 24px; }
+    .auth-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; }
+    .auth-card h1 { font-size: 20px; margin: 0 0 4px; }
+    .auth-card p.sub { color: var(--text-dim); font-size: 13px; margin: 0 0 20px; }
+    .auth-field { margin-bottom: 14px; }
+    .auth-field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+    .auth-field input { width: 100%; background: var(--panel-alt); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; border-radius: 6px; font-size: 14px; }
+    .auth-field .hint { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+    .auth-submit { width: 100%; margin-top: 6px; }
+    .auth-switch { text-align: center; margin-top: 16px; font-size: 13px; color: var(--text-dim); }
+    .auth-switch a { color: var(--accent-2); }
+</style>
+</head>
+<body>
+<div class="auth-wrap">
+    <div class="auth-card">
+        <h1>🏈 Create your account</h1>
+        <p class="sub">Create an account to get started.</p>
+        <form id="signupForm">
+            <div class="auth-field">
+                <label for="email">Email</label>
+                <input type="email" id="email" autocomplete="email" required>
+            </div>
+            <div class="auth-field">
+                <label for="password">Password</label>
+                <input type="password" id="password" autocomplete="new-password" minlength="8" required>
+                <div class="hint">At least 8 characters.</div>
+            </div>
+            <div id="authStatus" class="upload-status"></div>
+            <button type="submit" class="refresh-btn auth-submit">Create Account</button>
+        </form>
+        <div class="auth-switch">Already have an account? <a href="/login.html">Log in</a></div>
+    </div>
+</div>
+<script>
+    document.getElementById('signupForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const status = document.getElementById('authStatus');
+        status.textContent = 'Creating account...';
+        status.className = 'upload-status loading';
+        try {
+            const res = await fetch('/api/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Signup failed.');
+            window.location.href = '/';
+        } catch (err) {
+            status.textContent = err.message;
+            status.className = 'upload-status error';
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Recruiting Coordinator</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+    <header class="app-header">
+        <div id="accountBar" class="account-bar hidden">
+            <span id="accountEmail"></span>
+            <button id="logoutBtn" class="link-btn">Log out</button>
+        </div>
+        <h1>🏈 Recruiting Coordinator <span class="version">standalone</span></h1>
+        <p class="subtitle">Upload a CFB 27 dynasty save to explore its recruiting class. Spun out from Dynasty Tracker so this tool can be iterated on independently.</p>
+    </header>
+
+    <nav class="top-tabs">
+        <button class="tab-btn active" data-tab="recruitsTab">Recruit Explorer</button>
+        <button class="tab-btn" data-tab="averagesTab">Class Landscape</button>
+        <button class="tab-btn" data-tab="nationalTab">National Landscape</button>
+        <button class="tab-btn" data-tab="topTeamsTab">Top Teams</button>
+        <button class="tab-btn" data-tab="targetsTab">Recruit Targets</button>
+    </nav>
+
+    <main class="main-content">
+    <div id="recruitsTab" class="tab-panel active">
+        <section class="refresh-panel hidden" id="refreshPanel">
+            <div class="refresh-row">
+                <button id="refreshBtn" class="refresh-btn">🔄 Refresh from Save File</button>
+                <div class="save-path-display">
+                    <span id="savePathText"></span>
+                    <button id="editPathBtn" class="link-btn">change</button>
+                </div>
+            </div>
+            <div id="savePathEditor" class="path-editor hidden">
+                <input type="text" id="savePathInput" class="wide-search">
+                <button id="savePathBtn">Save Path</button>
+                <button id="cancelPathBtn" class="link-btn">cancel</button>
+            </div>
+        </section>
+
+        <section class="upload-panel" id="uploadPanel">
+            <details class="manual-upload-details" id="manualUploadDetails" open>
+                <summary id="manualUploadSummary">Upload a dynasty save file</summary>
+                <label class="dropzone" id="dropzone">
+                    <input type="file" id="fileInput" accept=".*" hidden>
+                    <div class="dropzone-content">
+                        <div class="dropzone-icon">📂</div>
+                        <div class="dropzone-text">Drag &amp; drop your dynasty save file here, or click to browse</div>
+                        <div class="dropzone-hint">e.g. DYNASTY-AUG29-08h55m21-AUTOSAVE</div>
+                    </div>
+                </label>
+            </details>
+            <div id="uploadStatus" class="upload-status"></div>
+
+            <div id="pathSetupPrompt" class="path-setup-prompt hidden">
+                <p>💾 Want one-click refreshes next time you play, instead of re-uploading? Save this file's full path:</p>
+                <div class="path-editor">
+                    <input type="text" id="pathSetupInput" class="wide-search" placeholder="C:\path\to\your\dynasty\save\file">
+                    <button id="pathSetupSaveBtn">Save Path</button>
+                    <button id="pathSetupSkipBtn" class="link-btn">not now</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="results-panel hidden" id="resultsPanel">
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <label for="rangeSelect">Showing</label>
+                    <select id="rangeSelect"></select>
+                </div>
+                <div class="toolbar-group">
+                    <label for="posFilter">Position</label>
+                    <select id="posFilter"><option value="">All</option></select>
+                </div>
+                <div class="toolbar-group">
+                    <label for="starFilter">Stars</label>
+                    <select id="starFilter">
+                        <option value="">All</option>
+                        <option value="5">5★</option>
+                        <option value="4">4★</option>
+                        <option value="3">3★</option>
+                        <option value="2">2★</option>
+                        <option value="1">1★</option>
+                    </select>
+                </div>
+                <div class="toolbar-group">
+                    <label for="stateFilter">State</label>
+                    <select id="stateFilter"><option value="">All</option></select>
+                </div>
+                <div class="toolbar-group">
+                    <label for="schoolFilter">Interested In</label>
+                    <select id="schoolFilter"><option value="">Any School</option></select>
+                </div>
+                <div class="toolbar-group search-group">
+                    <label for="searchBox">Search</label>
+                    <input type="text" id="searchBox" placeholder="Recruit name...">
+                </div>
+                <label class="toolbar-group blur-toggle-group toggle-switch-label" for="blurToggle">
+                    <span class="toggle-switch-text">Blur OVR / SPD</span>
+                    <input type="checkbox" id="blurToggle" checked>
+                    <span class="toggle-track" aria-hidden="true"></span>
+                </label>
+                <div class="toolbar-group result-count" id="resultCount"></div>
+            </div>
+
+            <div class="table-wrap">
+                <table id="recruitTable">
+                    <thead>
+                        <tr>
+                            <th data-key="rank">National Rank</th>
+                            <th data-key="name">Recruit Name</th>
+                            <th data-key="position">POS</th>
+                            <th data-key="homeState">State</th>
+                            <th data-key="starsNum">Stars</th>
+                            <th data-key="overall">OVR</th>
+                            <th data-key="speed">SPD</th>
+                            <th data-key="nil">NIL</th>
+                            <th data-key="gem">Gem Status</th>
+                            <th data-key="rawRating">Raw Rating</th>
+                            <th data-key="nilAdjustedRating">NIL Adj. Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="pager">
+                <button id="prevPage">&larr; Prev 25</button>
+                <span id="pagerLabel"></span>
+                <button id="nextPage">Next 25 &rarr;</button>
+            </div>
+        </section>
+    </div>
+
+    <div id="averagesTab" class="tab-panel">
+        <section class="averages-panel">
+            <p class="leaderboard-hint">A landscape view of this recruiting class's national averages, broken down by position and sorted by highest Avg Overall first. Load recruits in the Recruit Explorer tab first (upload or refresh), then filter here by star rating. Highlighted columns are the ratings that matter most for that position. NIL is the game's internal valuation index, not a literal dollar figure &mdash; individual below-zero values are floored at 0 before averaging, so a position never shows an expected NIL below zero.</p>
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <label for="avgStarFilter">Star Rating</label>
+                    <select id="avgStarFilter">
+                        <option value="">All Recruits</option>
+                        <option value="5">5★ Only</option>
+                        <option value="4">4★ Only</option>
+                        <option value="3">3★ Only</option>
+                        <option value="2">2★ Only</option>
+                        <option value="1">1★ Only</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table id="averagesTable">
+                    <thead>
+                        <tr>
+                            <th>Position</th><th># Recruits</th><th>Avg OVR</th>
+                            <th>Avg SPD</th><th>Avg STR</th><th>Avg AWR</th>
+                            <th>Avg AGI</th><th>Avg ACC</th><th>Avg JMP</th>
+                            <th>Avg NIL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="averagesBody"><tr><td colspan="10" class="empty-row">Load recruits in the Recruit Explorer tab to see the class landscape.</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <div id="nationalTab" class="tab-panel">
+        <section class="averages-panel">
+            <p class="leaderboard-hint">Every currently-rostered player nationwide (not recruits), grouped by team caliber and class year. Team tier is the save's own 0-10 Team Prestige bucketed into 4 tiers, mirroring recruit star tiers. "Starter" means the highest-Overall player(s) at that exact position on their roster (the save's own depth chart data didn't resolve reliably, so this is a realistic-slot-count proxy instead).</p>
+
+            <h2>Tier &times; Class, by Position</h2>
+            <p class="leaderboard-hint">Pick a position to see how its average Overall looks across every combination of team caliber and class year &mdash; useful for spotting development curves, e.g. "how does a Contending team's Junior WR corps compare to a Championship Caliber team's."</p>
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <label for="matrixPositionSelect">Position</label>
+                    <select id="matrixPositionSelect"></select>
+                </div>
+                <div class="toolbar-group">
+                    <label for="matrixStartersOnly">Players</label>
+                    <select id="matrixStartersOnly">
+                        <option value="starters">Starters Only</option>
+                        <option value="all">Entire Roster</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table id="matrixTable">
+                    <thead>
+                        <tr>
+                            <th>Team Tier</th><th>Freshman</th><th>Sophomore</th><th>Junior</th><th>Senior</th>
+                        </tr>
+                    </thead>
+                    <tbody id="matrixBody"><tr><td colspan="5" class="empty-row">Load a save file in the Recruit Explorer tab to see the national landscape.</td></tr></tbody>
+                </table>
+            </div>
+
+            <h2>All Positions, by Class</h2>
+            <p class="leaderboard-hint">Every position broken out by class year in one table. Key Rating columns show whichever ratings matter most for that specific position.</p>
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <label for="rosterPositionFilter">Position</label>
+                    <select id="rosterPositionFilter"><option value="">All Positions</option></select>
+                </div>
+                <div class="toolbar-group">
+                    <label for="rosterTierFilter">Team Tier</label>
+                    <select id="rosterTierFilter">
+                        <option value="">All Tiers</option>
+                        <option value="4">Championship Caliber (7-10)</option>
+                        <option value="3">Contending (5-6)</option>
+                        <option value="2">Competing (3-4)</option>
+                        <option value="1">Rebuilding (0-2)</option>
+                    </select>
+                </div>
+                <div class="toolbar-group">
+                    <label for="rosterStartersOnly">Players</label>
+                    <select id="rosterStartersOnly">
+                        <option value="starters">Starters Only</option>
+                        <option value="all">Entire Roster</option>
+                    </select>
+                </div>
+            </div>
+            <div id="tierLegend" class="tier-legend"></div>
+            <div class="table-wrap">
+                <table id="rosterTable">
+                    <thead>
+                        <tr>
+                            <th>Position</th><th>Class</th><th>Avg OVR</th>
+                            <th>Key Rating 1</th><th>Key Rating 2</th><th>Key Rating 3</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rosterBody"><tr><td colspan="6" class="empty-row">Load a save file in the Recruit Explorer tab to see the national landscape.</td></tr></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <div id="topTeamsTab" class="tab-panel">
+        <section class="averages-panel">
+            <h1 class="power-rankings-title">🏆 National Power Rankings</h1>
+            <p class="leaderboard-hint power-rankings-hint">The best Offense, Defense, and Overall roster nationwide &mdash; Offense blends Quarterback/Running Back/Wide Receiver/Tight End/Offensive Line, Defense blends Defensive Line/Linebacker/Defensive Back, and Overall blends all ten position groups below.</p>
+            <div id="powerRankings"><p class="empty-row">Load a save file in the Recruit Explorer tab to see power rankings.</p></div>
+
+            <p class="leaderboard-hint">Top 5 teams at each position group, nationwide. A team's group score averages its starter-weighted Overall at every individual position in the group (e.g. Left Tackle, Left Guard, Center, Right Guard, Right Tackle for Offensive Line) &mdash; starters count 3&times; as much as bench players, and a team missing a position entirely (e.g. no Fullback) is simply left out of that one position's average rather than penalized for it.</p>
+            <div id="topTeamsContainer"><p class="empty-row">Load a save file in the Recruit Explorer tab to see top teams.</p></div>
+        </section>
+    </div>
+
+    <div id="targetsTab" class="tab-panel">
+        <section class="averages-panel">
+            <h1 class="power-rankings-title" id="targetsTitle">🎯 Recruit Targets</h1>
+            <p class="leaderboard-hint power-rankings-hint">A 35-recruit target board built from your current roster, depth chart, and NIL situation &mdash; not just a generic top-recruits list. Every recruit is scored on positional need (factoring in graduating Juniors/Seniors), fit vs. your current players at that position, NIL cost-effectiveness, how interested they actually are in your program, and home-state/pipeline ties. Fullbacks, Kickers, and Punters are excluded from the board entirely.</p>
+            <div id="teamContextSummary" class="team-context-summary"></div>
+
+            <div id="targetsContainer">
+                <p class="empty-row">Load a save file in the Recruit Explorer tab to see recruit targets.</p>
+            </div>
+        </section>
+    </div>
+    </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

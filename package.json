@@ -1,0 +1,21 @@
+{
+  "name": "recruiting-coordinator",
+  "version": "1.0.0",
+  "description": "Recruiting Coordinator - a standalone CFB 27 dynasty save recruit explorer, spun out from Dynasty Tracker so it can evolve independently.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.2.1",
+    "madden-franchise": "^4.3.6",
+    "multer": "^2.3.0"
+  }
+}
