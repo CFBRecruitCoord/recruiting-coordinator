@@ -384,6 +384,21 @@
             <p class="leaderboard-hint">This shapes the overall balance of the Recruit Targets board once it's wired in &mdash; how much weight goes toward long-term foundation building vs. immediate, win-now upgrades.</p>
             <div id="teamDirectionCards" class="direction-cards"></div>
 
+            <h2>Evaluation Preferences</h2>
+            <p class="leaderboard-hint">The game's own scouting sometimes flags a recruit as a "Gem" (likely to outperform their rating) or a "Bust" (likely to underperform). These two are independent &mdash; you can hide the badge from view while still letting it influence ratings, or the reverse.</p>
+            <div class="settings-toggle-row">
+                <label class="toggle-switch-label" for="hideGemBustToggle">
+                    <span class="toggle-switch-text">Hide Gem/Bust Status</span>
+                    <input type="checkbox" id="hideGemBustToggle">
+                    <span class="toggle-track" aria-hidden="true"></span>
+                </label>
+                <label class="toggle-switch-label" for="ignoreGemBustToggle">
+                    <span class="toggle-switch-text">Ignore Gem/Bust Status</span>
+                    <input type="checkbox" id="ignoreGemBustToggle">
+                    <span class="toggle-track" aria-hidden="true"></span>
+                </label>
+            </div>
+
             <h2>Position Priorities</h2>
             <p class="leaderboard-hint">For every position except Fullback, Kicker, and Punter: pick the two ratings that matter most to you, up to two archetypes you'd prefer, and one archetype you'd rather steer away from. Archetypes are pulled directly from the game's own per-position player-type system.</p>
             <div class="table-wrap">

@@ -1216,7 +1216,9 @@
                 avoidArchetype: ''
             };
         });
-        return { teamDirection: 'maintain', positions };
+        // On by default: neither hidden nor ignored - these are opt-in
+        // preferences, not the default experience.
+        return { teamDirection: 'maintain', hideGemBustStatus: false, ignoreGemBustStatus: false, positions };
     }
 
     function loadSettings() {
@@ -1229,6 +1231,8 @@
             const defaults = getDefaultSettings();
             return {
                 teamDirection: parsed.teamDirection || defaults.teamDirection,
+                hideGemBustStatus: parsed.hideGemBustStatus ?? defaults.hideGemBustStatus,
+                ignoreGemBustStatus: parsed.ignoreGemBustStatus ?? defaults.ignoreGemBustStatus,
                 positions: Object.assign({}, defaults.positions, parsed.positions)
             };
         } catch (e) {
@@ -1293,8 +1297,21 @@
         });
     }
 
+    function renderGemBustToggles() {
+        const hideToggle = document.getElementById('hideGemBustToggle');
+        const ignoreToggle = document.getElementById('ignoreGemBustToggle');
+        if (!hideToggle || !ignoreToggle) return;
+
+        hideToggle.checked = coordinatorSettings.hideGemBustStatus;
+        ignoreToggle.checked = coordinatorSettings.ignoreGemBustStatus;
+
+        hideToggle.onchange = () => { coordinatorSettings.hideGemBustStatus = hideToggle.checked; };
+        ignoreToggle.onchange = () => { coordinatorSettings.ignoreGemBustStatus = ignoreToggle.checked; };
+    }
+
     function initSettingsTab() {
         renderTeamDirectionCards();
+        renderGemBustToggles();
         renderPositionPrioritiesTable();
 
         const saveBtn = document.getElementById('saveSettingsBtn');
@@ -1310,6 +1327,7 @@
         if (resetBtn) resetBtn.addEventListener('click', () => {
             coordinatorSettings = getDefaultSettings();
             renderTeamDirectionCards();
+            renderGemBustToggles();
             renderPositionPrioritiesTable();
             status.textContent = '';
             status.className = 'upload-status';

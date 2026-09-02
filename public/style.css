@@ -506,7 +506,13 @@ body {
     cursor: pointer;
 }
 
-.toggle-switch-label { user-select: none; }
+.toggle-switch-label {
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
 
 .toggle-switch-text {
     font-size: 11px;
@@ -974,4 +980,15 @@ tr.detail-row td {
     align-items: center;
     gap: 16px;
     margin-top: 20px;
+}
+
+.settings-toggle-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 28px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 8px;
 }
