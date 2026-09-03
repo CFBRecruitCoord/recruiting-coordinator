@@ -1181,3 +1181,70 @@ tr.detail-row td {
     border-radius: 6px;
     font-size: 12.5px;
 }
+
+/* ---- Free-upload-limit modal (shown as a heads-up right after an
+   anonymous visitor's 3rd successful upload, and again if they try a 4th
+   without an account - see checkUploadLimit/freeUploadInfo in server.js) ---- */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 8, 14, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+}
+.modal-overlay.hidden { display: none; }
+
+.modal-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 34px 28px 26px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
+
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 6px;
+}
+.modal-close:hover { color: var(--text); }
+
+.modal-icon { font-size: 42px; margin-bottom: 10px; }
+
+.modal-card h2 {
+    font-family: 'Oswald', sans-serif;
+    font-size: 19px;
+    margin: 0 0 10px;
+}
+
+.modal-card p {
+    font-size: 13.5px;
+    color: var(--text-dim);
+    line-height: 1.55;
+    margin: 0 0 22px;
+}
+
+.modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.modal-actions .refresh-btn { text-decoration: none; display: inline-block; }
+.modal-actions .link-btn { font-size: 13px; }
+
+.modal-dismiss { font-size: 12px; }

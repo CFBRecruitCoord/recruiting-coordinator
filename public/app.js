@@ -49,6 +49,40 @@
         }
     })();
 
+    // ---- Free-upload-limit modal ----
+    // Shared by two triggers in uploadFile() below: a heads-up right when an
+    // anonymous visitor's upload crosses the free limit (server still lets
+    // that one through), and again if they try another upload afterward
+    // without an account (server blocks it with error: 'account_required').
+    // Dismissing never grants a bypass - it's just "ok, I understand," not
+    // a real gate; the actual enforcement is entirely server-side.
+    const accountModal = document.getElementById('accountRequiredModal');
+    const accountModalIcon = document.getElementById('accountModalIcon');
+    const accountModalTitle = document.getElementById('accountModalTitle');
+    const accountModalMessage = document.getElementById('accountModalMessage');
+
+    function showAccountModal({ icon, title, message }) {
+        if (!accountModal) return;
+        accountModalIcon.textContent = icon || '🔒';
+        accountModalTitle.textContent = title;
+        accountModalMessage.textContent = message;
+        accountModal.classList.remove('hidden');
+    }
+    function hideAccountModal() {
+        if (accountModal) accountModal.classList.add('hidden');
+    }
+
+    const accountModalClose = document.getElementById('accountModalClose');
+    const accountModalDismiss = document.getElementById('accountModalDismiss');
+    if (accountModalClose) accountModalClose.addEventListener('click', hideAccountModal);
+    if (accountModalDismiss) accountModalDismiss.addEventListener('click', hideAccountModal);
+    if (accountModal) accountModal.addEventListener('click', e => {
+        if (e.target === accountModal) hideAccountModal(); // clicked the backdrop, not the card
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && accountModal && !accountModal.classList.contains('hidden')) hideAccountModal();
+    });
+
     const PAGE_SIZE = 25;
 
     // Canonical display order for the Class Landscape table - offense,
@@ -247,6 +281,19 @@
             try { data = JSON.parse(rawText); } catch (e) { data = null; }
 
             if (!res.ok) {
+                // Blocked by checkUploadLimit on the server (4th+ anonymous
+                // upload attempt) - show the account modal instead of the
+                // generic error text, since "here's what to do about it" is
+                // the whole point here, not just "it failed."
+                if (data && data.error === 'account_required') {
+                    showAccountModal({
+                        icon: '🔒',
+                        title: 'Free uploads used up',
+                        message: data.message || `You've used all your free uploads. Create a free account (or log in) to keep going.`
+                    });
+                    setStatus('Create a free account to keep uploading.', 'error');
+                    return;
+                }
                 const detail = (data && data.error) || rawText.slice(0, 200) || `HTTP ${res.status}`;
                 throw new Error(`Upload failed (HTTP ${res.status}): ${detail}`);
             }
@@ -273,6 +320,17 @@
             if (!currentSavePath && !pathPromptDismissed) {
                 pathSetupInput.value = file.path || ''; // browsers usually don't expose this; harmless if empty
                 pathSetupPrompt.classList.remove('hidden');
+            }
+
+            // Heads-up the moment an anonymous visitor crosses the free
+            // limit, rather than waiting for their next upload to get
+            // blocked by the server. null for a logged-in user (no limit).
+            if (data.freeUploadInfo && data.freeUploadInfo.used >= data.freeUploadInfo.limit) {
+                showAccountModal({
+                    icon: '🎉',
+                    title: `That's all ${data.freeUploadInfo.limit} free uploads!`,
+                    message: `Create a free account to keep using Recruiting Coordinator without limits - it only takes a few seconds.`
+                });
             }
         } catch (err) {
             console.error(err);

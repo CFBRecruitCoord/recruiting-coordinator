@@ -18,6 +18,7 @@ const {
     submitFeedback, listFeedbackForUser, listFeedback, updateFeedbackStatus, getFeedbackCounts
 } = require('./lib/feedback');
 const { trackVisit, pruneOldVisits, VISITOR_COOKIE_NAME } = require('./lib/visitors');
+const { FREE_UPLOAD_LIMIT, countSuccessfulUploadsForVisitor } = require('./lib/uploadLimits');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -229,7 +230,27 @@ app.get('/api/feedback/mine', requireAuth, (req, res) => {
     }
 });
 
-app.post('/api/upload', apiGate, upload.single('saveFile'), async (req, res) => {
+// Blocks an anonymous visitor's 4th+ upload attempt, before multer even
+// reads the file off the wire - logged-in users (req.user set by apiGate,
+// which runs first) are exempt entirely. Mounted ahead of upload.single()
+// deliberately: the expensive part of this route is the save-file parse
+// below, not accepting the upload, so there's no reason to let a blocked
+// request pay any of that cost.
+function checkUploadLimit(req, res, next) {
+    if (req.user) return next();
+    const visitorId = req.cookies && req.cookies[VISITOR_COOKIE_NAME];
+    const used = countSuccessfulUploadsForVisitor(visitorId);
+    if (used >= FREE_UPLOAD_LIMIT) {
+        return res.status(403).json({
+            error: 'account_required',
+            message: `You've used all ${FREE_UPLOAD_LIMIT} free uploads. Create a free account (or log in) to keep using Recruiting Coordinator.`,
+            freeUploadLimit: FREE_UPLOAD_LIMIT
+        });
+    }
+    next();
+}
+
+app.post('/api/upload', apiGate, checkUploadLimit, upload.single('saveFile'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded.' });
     }
@@ -245,14 +266,20 @@ app.post('/api/upload', apiGate, upload.single('saveFile'), async (req, res) => 
         // Most uploaders won't be logged in now that it's optional - fall
         // back to the anonymous visitor cookie (same one the unique-visitor
         // counter uses) so the admin usage dashboard doesn't go dark.
+        const visitorId = req.cookies && req.cookies[VISITOR_COOKIE_NAME];
         recordUploadEvent({
             userId: req.user && req.user.id,
-            visitorId: req.cookies && req.cookies[VISITOR_COOKIE_NAME],
+            visitorId,
             success: true,
             recruitCount: recruits.length,
             rosterCount: roster.length
         });
-        res.json({ count: recruits.length, recruits, rosterCount: roster.length, roster, userTeam });
+        // Lets the frontend show a heads-up right when an anonymous visitor
+        // crosses the free limit, rather than waiting for their next
+        // attempt to get blocked by checkUploadLimit above. null for a
+        // logged-in user, who has no limit to warn about.
+        const freeUploadInfo = req.user ? null : { used: countSuccessfulUploadsForVisitor(visitorId), limit: FREE_UPLOAD_LIMIT };
+        res.json({ count: recruits.length, recruits, rosterCount: roster.length, roster, userTeam, freeUploadInfo });
     } catch (err) {
         console.error(err);
         recordUploadEvent({
