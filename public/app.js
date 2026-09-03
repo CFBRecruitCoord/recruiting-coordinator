@@ -288,10 +288,10 @@
                 if (data && data.error === 'account_required') {
                     showAccountModal({
                         icon: '🔒',
-                        title: 'Free uploads used up',
-                        message: data.message || `You've used all your free uploads. Create a free account (or log in) to keep going.`
+                        title: 'Account required to continue',
+                        message: data.message || `You've used your uploads without an account. Create an account (or log in) to keep going.`
                     });
-                    setStatus('Create a free account to keep uploading.', 'error');
+                    setStatus('Create an account to keep uploading.', 'error');
                     return;
                 }
                 const detail = (data && data.error) || rawText.slice(0, 200) || `HTTP ${res.status}`;
@@ -328,8 +328,8 @@
             if (data.freeUploadInfo && data.freeUploadInfo.used >= data.freeUploadInfo.limit) {
                 showAccountModal({
                     icon: '🎉',
-                    title: `That's all ${data.freeUploadInfo.limit} free uploads!`,
-                    message: `Create a free account to keep using Recruiting Coordinator without limits - it only takes a few seconds.`
+                    title: `That's ${data.freeUploadInfo.limit} uploads without an account!`,
+                    message: `Create an account to keep using Recruiting Coordinator - it only takes a few seconds.`
                 });
             }
         } catch (err) {

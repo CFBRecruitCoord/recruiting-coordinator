@@ -243,7 +243,7 @@ function checkUploadLimit(req, res, next) {
     if (used >= FREE_UPLOAD_LIMIT) {
         return res.status(403).json({
             error: 'account_required',
-            message: `You've used all ${FREE_UPLOAD_LIMIT} free uploads. Create a free account (or log in) to keep using Recruiting Coordinator.`,
+            message: `You've used your ${FREE_UPLOAD_LIMIT} uploads without an account. Create an account (or log in) to keep using Recruiting Coordinator.`,
             freeUploadLimit: FREE_UPLOAD_LIMIT
         });
     }
