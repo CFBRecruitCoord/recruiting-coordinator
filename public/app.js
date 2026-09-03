@@ -1,20 +1,28 @@
 (function () {
-    // ---- Account bar: only shows anything in hosted (MULTI_TENANT_MODE)
-    // deployments where /api/auth/me actually returns a logged-in user. In
-    // personal-use mode this fetch just resolves to { user: null } and the
-    // bar stays hidden, so it's a no-op there. ----
+    // ---- Account bar: only ever shown in hosted (MULTI_TENANT_MODE)
+    // deployments - personal mode has no login system in the UI at all, so
+    // it stays fully hidden there rather than show a "Log In" prompt that
+    // leads nowhere useful. Login itself is optional now (the app works
+    // without an account), so this shows one of two states in hosted mode:
+    // "Log In / Sign Up" when logged out, or "email + Log out" when in. ----
     (async function initAccountBar() {
         const bar = document.getElementById('accountBar');
         const emailEl = document.getElementById('accountEmail');
         const logoutBtn = document.getElementById('logoutBtn');
         const adminTabBtn = document.getElementById('adminTabBtn');
+        const loggedInRow = document.getElementById('accountBarLoggedIn');
+        const loggedOutRow = document.getElementById('accountBarLoggedOut');
         if (!bar) return;
         try {
             const res = await fetch('/api/auth/me');
             const data = await res.json();
+            if (!data.hostedMode) return; // personal mode - leave everything hidden
+
+            bar.classList.remove('hidden');
             if (data.user) {
+                loggedInRow.classList.remove('hidden');
+                loggedOutRow.classList.add('hidden');
                 emailEl.textContent = data.user.email;
-                bar.classList.remove('hidden');
                 // The tab button is just a convenience toggle - the real
                 // access control is server-side (isAdmin is resolved by the
                 // server, and /api/admin/stats independently enforces it),
@@ -24,13 +32,19 @@
                     loadAdminStats();
                     loadAdminFeedback();
                 }
+            } else {
+                loggedInRow.classList.add('hidden');
+                loggedOutRow.classList.remove('hidden');
             }
-        } catch (e) { /* not logged in / not hosted mode - leave hidden */ }
+        } catch (e) { /* request failed - leave hidden */ }
 
         if (logoutBtn) {
             logoutBtn.addEventListener('click', async () => {
                 await fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = '/login.html';
+                // Login is optional now, so there's nowhere the app needs to
+                // force someone after logging out - back to the app itself,
+                // not the login page.
+                window.location.href = '/';
             });
         }
     })();
@@ -1751,7 +1765,7 @@
             uploadsBody.innerHTML = stats.recentUploads.length
                 ? stats.recentUploads.map(u => `
                     <tr>
-                        <td>${escapeHtml(u.email || '(unknown)')}</td>
+                        <td>${escapeHtml(u.email || (u.visitorId ? `Anonymous (${u.visitorId.slice(0, 8)})` : '(unknown)'))}</td>
                         <td>${formatDate(u.createdAt)}</td>
                         <td>${u.success ? '<span class="badge badge-gem">OK</span>' : '<span class="badge badge-bust">FAILED</span>'}</td>
                         <td>${u.recruitCount ?? '&mdash;'}</td>

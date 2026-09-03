@@ -5,9 +5,11 @@ This app runs in two modes from the same codebase:
 - **Personal mode** (default, `MULTI_TENANT_MODE` unset) — no login, refresh-from-local-path
   works. This is what you already run on your own machine. Nothing about deploying
   changes that.
-- **Hosted mode** (`MULTI_TENANT_MODE=true`) — requires login, disables the
-  local-path refresh feature (upload-only), and needs a durable place to store
-  accounts.
+- **Hosted mode** (`MULTI_TENANT_MODE=true`) — login is optional (the app works
+  fully without an account; login is only needed for admin access and leaving
+  feedback/bug reports), disables the local-path refresh feature (upload-only),
+  tracks anonymous usage stats for the admin tab, and needs a durable place to
+  store accounts/stats.
 
 ## Why Railway
 

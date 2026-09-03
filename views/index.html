@@ -12,9 +12,14 @@
 <div class="app">
     <header class="app-header">
         <div id="accountBar" class="account-bar hidden">
-            <div class="account-bar-row">
+            <div id="accountBarLoggedIn" class="account-bar-row hidden">
                 <span id="accountEmail"></span>
                 <button id="logoutBtn" class="link-btn">Log out</button>
+            </div>
+            <div id="accountBarLoggedOut" class="account-bar-row hidden">
+                <span class="account-bar-hint">An account is optional</span>
+                <a href="/login.html" class="link-btn">Log In</a>
+                <a href="/signup.html" class="link-btn">Sign Up</a>
             </div>
             <a href="/feedback.html" class="link-btn">💬 Leave Comment / Report Bug</a>
         </div>

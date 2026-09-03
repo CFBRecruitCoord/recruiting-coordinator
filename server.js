@@ -17,16 +17,26 @@ const { isAdmin, requireAdmin, recordUploadEvent, getAdminStats, pruneOldUploadE
 const {
     submitFeedback, listFeedbackForUser, listFeedback, updateFeedbackStatus, getFeedbackCounts
 } = require('./lib/feedback');
-const { trackVisit, pruneOldVisits } = require('./lib/visitors');
+const { trackVisit, pruneOldVisits, VISITOR_COOKIE_NAME } = require('./lib/visitors');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 // Off by default - this is still the plain personal-use local tool unless
-// explicitly launched in hosted mode. When on: the app requires login, and
-// the "refresh from a local file path" feature is disabled outright, since
-// that path lives on the SERVER's disk - meaningless (and a path-traversal
-// risk) once other people's save files live on their own computers instead.
+// explicitly launched in hosted mode. When on: usage stats get tracked, the
+// admin tab becomes reachable (to the one admin account), and the "refresh
+// from a local file path" feature is disabled outright, since that path
+// lives on the SERVER's disk - meaningless (and a path-traversal risk) once
+// other people's save files live on their own computers instead.
+//
+// Login/signup is NOT required to use the app - it's fully optional (see
+// the account bar), used only for things that genuinely need an account:
+// admin access, and leaving feedback/bug reports. pageGate/apiGate below
+// used to redirect/block everyone without a session; they're now
+// deliberately no-ops for exactly that reason, kept (rather than deleted)
+// as the obvious place to reintroduce a login requirement for a specific
+// feature later, without having to rebuild this plumbing from scratch.
+//
 // Trimmed + lowercased before comparing, so a stray space or "True"/"TRUE"
 // typed into a hosting dashboard doesn't silently fall back to personal mode.
 const MULTI_TENANT_MODE = String(process.env.MULTI_TENANT_MODE || '').trim().toLowerCase() === 'true';
@@ -118,7 +128,13 @@ app.get('/api/auth/me', (req, res) => {
     // boolean - the admin email itself never needs to be known by the
     // frontend, and the real access control lives on /api/admin/stats
     // regardless of what this flag says.
-    res.json({ user: user ? { ...user, isAdmin: isAdmin(user) } : null });
+    //
+    // hostedMode tells the frontend whether to show the account bar at all
+    // (Log In / Sign Up when logged out, email / Log out when logged in) -
+    // in personal mode there's no login system exposed in the UI, so the
+    // bar needs to stay fully hidden rather than show a "Log In" prompt
+    // that leads nowhere useful.
+    res.json({ user: user ? { ...user, isAdmin: isAdmin(user) } : null, hostedMode: MULTI_TENANT_MODE });
 });
 
 // Always requires real auth + the admin check, regardless of MULTI_TENANT_MODE
@@ -158,17 +174,22 @@ app.post('/api/admin/feedback/:id/status', requireAuth, requireAdmin, (req, res)
     }
 });
 
-// ---- The app itself: gated behind login only in hosted mode ----
+// ---- The app itself: no longer requires login in any mode ----
+// Deliberately a no-op now (see the MULTI_TENANT_MODE comment above for
+// why it's kept rather than removed) - the app page loads for everyone.
 function pageGate(req, res, next) {
-    if (!MULTI_TENANT_MODE) return next();
-    const user = getUserForSession(req.cookies && req.cookies[SESSION_COOKIE_NAME]);
-    if (!user) return res.redirect('/login.html');
     next();
 }
 
+// Never blocks the request, but still attaches req.user when a valid
+// session IS present, so a logged-in user's uploads/activity keep getting
+// attributed to their account. An anonymous visitor just proceeds with no
+// req.user - every route already treats that as optional (e.g. `req.user
+// && req.user.id`), the same as personal mode has always worked.
 function apiGate(req, res, next) {
-    if (!MULTI_TENANT_MODE) return next();
-    return requireAuth(req, res, next);
+    const user = getUserForSession(req.cookies && req.cookies[SESSION_COOKIE_NAME]);
+    if (user) req.user = user;
+    next();
 }
 
 app.get('/', pageGate, (req, res) => {
@@ -178,13 +199,14 @@ app.get('/', pageGate, (req, res) => {
 app.use(express.static(path.join(__dirname, 'public')));
 
 // User-facing comment/bug report submission (the feedback.html page linked
-// from the account bar). Gated like most routes - wide open in personal
-// mode (harmless there, just a local row nobody reviews), real auth
-// required in hosted mode so every submission is attributable to an account.
-app.post('/api/feedback', apiGate, (req, res) => {
+// from the account bar). Unlike the rest of the app, this still requires a
+// real account - a deliberate choice (feedback needs to be attributable to
+// someone), and the one feature that still gives someone a reason to sign
+// up now that everything else is open.
+app.post('/api/feedback', requireAuth, (req, res) => {
     try {
         submitFeedback({
-            userId: req.user && req.user.id,
+            userId: req.user.id,
             type: req.body.type,
             message: req.body.message,
             pageContext: req.body.pageContext
@@ -196,11 +218,11 @@ app.post('/api/feedback', apiGate, (req, res) => {
 });
 
 // A user's own submission history - never anyone else's, so this is safe
-// to leave behind the same apiGate as everything else rather than requiring
-// the stricter requireAdmin used by /api/admin/feedback above.
-app.get('/api/feedback/mine', apiGate, (req, res) => {
+// to leave behind plain requireAuth rather than the stricter requireAdmin
+// used by /api/admin/feedback above.
+app.get('/api/feedback/mine', requireAuth, (req, res) => {
     try {
-        res.json({ items: req.user ? listFeedbackForUser(req.user.id) : [] });
+        res.json({ items: listFeedbackForUser(req.user.id) });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to load your feedback.', details: err.message });
@@ -220,8 +242,12 @@ app.post('/api/upload', apiGate, upload.single('saveFile'), async (req, res) => 
         const recruits = await parseRecruits(franchise);
         const roster = await parseRosterLandscape(franchise);
         const userTeam = await parseUserTeamContext(franchise);
+        // Most uploaders won't be logged in now that it's optional - fall
+        // back to the anonymous visitor cookie (same one the unique-visitor
+        // counter uses) so the admin usage dashboard doesn't go dark.
         recordUploadEvent({
             userId: req.user && req.user.id,
+            visitorId: req.cookies && req.cookies[VISITOR_COOKIE_NAME],
             success: true,
             recruitCount: recruits.length,
             rosterCount: roster.length
@@ -229,7 +255,12 @@ app.post('/api/upload', apiGate, upload.single('saveFile'), async (req, res) => 
         res.json({ count: recruits.length, recruits, rosterCount: roster.length, roster, userTeam });
     } catch (err) {
         console.error(err);
-        recordUploadEvent({ userId: req.user && req.user.id, success: false, errorMessage: err.message });
+        recordUploadEvent({
+            userId: req.user && req.user.id,
+            visitorId: req.cookies && req.cookies[VISITOR_COOKIE_NAME],
+            success: false,
+            errorMessage: err.message
+        });
         res.status(500).json({ error: 'Failed to parse save file. Make sure this is a valid EA Sports College Football 27 dynasty save.', details: err.message });
     } finally {
         fs.unlink(req.file.path, () => {});
@@ -353,7 +384,7 @@ if (MULTI_TENANT_MODE) {
 
 app.listen(PORT, () => {
     console.log(`Recruiting Coordinator running on port ${PORT}`);
-    console.log(`Mode: ${MULTI_TENANT_MODE ? 'HOSTED (login required)' : 'PERSONAL (no login, local-path refresh enabled)'}`);
+    console.log(`Mode: ${MULTI_TENANT_MODE ? 'HOSTED (login optional, usage stats tracked)' : 'PERSONAL (no login, local-path refresh enabled)'}`);
     console.log(`Raw MULTI_TENANT_MODE env value: ${JSON.stringify(process.env.MULTI_TENANT_MODE)}`);
     if (MULTI_TENANT_MODE) {
         console.log(`DATA_DIR: ${process.env.DATA_DIR || '(not set - using default in-repo path, will NOT survive a redeploy)'}`);

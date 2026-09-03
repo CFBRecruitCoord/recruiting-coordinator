@@ -1050,6 +1050,11 @@ tr.detail-row td {
     gap: 12px;
 }
 
+.account-bar-hint {
+    color: var(--text-dim);
+    font-size: 11px;
+}
+
 /* ---- Coordinator Settings tab ---- */
 .direction-cards {
     display: grid;
