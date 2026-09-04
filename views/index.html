@@ -381,6 +381,7 @@
             <button class="sub-tab-btn active" data-subtab="top25SubTab">🏈 Top 25</button>
             <button class="sub-tab-btn" data-subtab="conferenceStandingsSubTab">🏟️ Conference Standings</button>
             <button class="sub-tab-btn" data-subtab="awardsSubTab">🏅 Awards</button>
+            <button class="sub-tab-btn" data-subtab="allAmericansSubTab">🎖️ All-Americans</button>
             <button class="sub-tab-btn" data-subtab="powerRankingsSubTab">🏆 National Power Rankings</button>
         </div>
 
@@ -577,6 +578,106 @@
                     <table id="awardsSchoolsTable">
                         <thead><tr><th>#</th><th>School</th><th>Total Awards</th></tr></thead>
                         <tbody id="awardsSchoolsBody"><tr><td colspan="3" class="empty-row">Upload a save file to see school award totals.</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        </div>
+
+        <div id="allAmericansSubTab" class="sub-tab-panel">
+        <section class="records-panel top25-panel">
+            <p class="leaderboard-hint">1st and 2nd Team All-American selections &mdash; the true national team, and the fuller per-conference All-Conference teams, both browsable by year.</p>
+
+            <details class="info-box">
+                <summary>How this works</summary>
+                <div class="info-box-body">
+                    <h4>National All-American</h4>
+                    <p>The save's own true national 1st/2nd Team. Honestly, this is often sparse (sometimes just a handful of positions filled rather than a full ~25-man team) - that reflects what the save itself tracks, not a gap in this page.</p>
+                    <h4>All-Conference Teams</h4>
+                    <p>Each conference's own 1st/2nd Team honors - much more fully populated than the national team, but a separate per-conference honor, not the one national team above.</p>
+                    <h4>School Totals</h4>
+                    <p>Every school with at least one selection, ranked by total (1st + 2nd Team combined) - click a school to see the full list.</p>
+                    <h4>Historical years</h4>
+                    <p>Unlike the major awards, All-American entries live in a shared save-file buffer that doesn't dedicate much room to any one honor, so history here builds up gradually the more you upload/refresh - the same way Top 25 and Conference Standings do.</p>
+                </div>
+            </details>
+
+            <div id="allAmericansLoginPrompt" class="login-prompt-card hidden">
+                <h2>Log in to track All-Americans</h2>
+                <p>Like the rest of National Landscape's history features, this needs an account so All-American history stays put across visits. Once you're logged in, just upload or refresh like normal &mdash; every selection gets saved automatically.</p>
+                <div class="modal-actions">
+                    <a href="/signup.html" class="refresh-btn">Sign Up</a>
+                    <a href="/login.html" class="link-btn">Already have an account? Log In</a>
+                </div>
+            </div>
+
+            <div id="allAmericansContent">
+                <h2>🇺🇸 National All-American</h2>
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <label for="natAllAmYearSelect">Year</label>
+                        <select id="natAllAmYearSelect"></select>
+                    </div>
+                </div>
+                <div class="all-am-teams">
+                    <div class="table-wrap">
+                        <h4 class="all-am-team-title">1st Team</h4>
+                        <table id="natAllAm1stTable">
+                            <thead><tr><th>Position</th><th>Player</th><th>School</th></tr></thead>
+                            <tbody id="natAllAm1stBody"><tr><td colspan="3" class="empty-row">Upload a save file to see All-Americans.</td></tr></tbody>
+                        </table>
+                    </div>
+                    <div class="table-wrap">
+                        <h4 class="all-am-team-title">2nd Team</h4>
+                        <table id="natAllAm2ndTable">
+                            <thead><tr><th>Position</th><th>Player</th><th>School</th></tr></thead>
+                            <tbody id="natAllAm2ndBody"><tr><td colspan="3" class="empty-row">Upload a save file to see All-Americans.</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <h2>🏟️ All-Conference Teams</h2>
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <label for="confAllAmYearSelect">Year</label>
+                        <select id="confAllAmYearSelect"></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="confAllAmConferenceSelect">Conference</label>
+                        <select id="confAllAmConferenceSelect"></select>
+                    </div>
+                </div>
+                <div class="all-am-teams">
+                    <div class="table-wrap">
+                        <h4 class="all-am-team-title">1st Team</h4>
+                        <table id="confAllAm1stTable">
+                            <thead><tr><th>Position</th><th>Player</th><th>School</th></tr></thead>
+                            <tbody id="confAllAm1stBody"><tr><td colspan="3" class="empty-row">Upload a save file to see All-Conference teams.</td></tr></tbody>
+                        </table>
+                    </div>
+                    <div class="table-wrap">
+                        <h4 class="all-am-team-title">2nd Team</h4>
+                        <table id="confAllAm2ndTable">
+                            <thead><tr><th>Position</th><th>Player</th><th>School</th></tr></thead>
+                            <tbody id="confAllAm2ndBody"><tr><td colspan="3" class="empty-row">Upload a save file to see All-Conference teams.</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <h2>🏫 School Totals</h2>
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <label for="allAmSchoolsScopeSelect">Scope</label>
+                        <select id="allAmSchoolsScopeSelect">
+                            <option value="national">National All-American</option>
+                            <option value="conference">All-Conference Teams</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table id="allAmSchoolsTable">
+                        <thead><tr><th>#</th><th>School</th><th>1st Team</th><th>2nd Team</th><th>Total</th></tr></thead>
+                        <tbody id="allAmSchoolsBody"><tr><td colspan="5" class="empty-row">Upload a save file to see school totals.</td></tr></tbody>
                     </table>
                 </div>
             </div>

@@ -33,6 +33,11 @@ const {
     ingestAwardsHistory, ingestHeismanRace, getAwardsHistory, getAvailableAwardYears,
     getSchoolAwardTotals, getHeismanRace, getLatestHeismanRace, getAvailableHeismanWeeks
 } = require('./lib/awardsIngest');
+const { parseAllAmericans } = require('./lib/parseAllAmericans');
+const {
+    ingestAllAmericans, getAllAmericanTeam, getAvailableAllAmericanYears,
+    getAllAmericanConferences, getAllAmericanSchoolTotals
+} = require('./lib/allAmericansIngest');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -469,6 +474,51 @@ app.get('/api/awards/heisman/available', dynastyRecordsGate, (req, res) => {
     }
 });
 
+// ---- All-Americans ----
+// scope is 'national' or 'conference' throughout - conference is required
+// (and only meaningful) when scope='conference'.
+app.get('/api/all-americans/team', dynastyRecordsGate, (req, res) => {
+    try {
+        const { scope, year, conference } = req.query;
+        if (scope !== 'national' && scope !== 'conference') {
+            return res.status(400).json({ error: 'scope must be "national" or "conference".' });
+        }
+        res.json(getAllAmericanTeam(req.dynastyUserId, scope, Number(year), conference || null));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load All-American team.', details: err.message });
+    }
+});
+
+app.get('/api/all-americans/available-years', dynastyRecordsGate, (req, res) => {
+    try {
+        const scope = req.query.scope === 'conference' ? 'conference' : 'national';
+        res.json(getAvailableAllAmericanYears(req.dynastyUserId, scope));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load available All-American years.', details: err.message });
+    }
+});
+
+app.get('/api/all-americans/conferences', dynastyRecordsGate, (req, res) => {
+    try {
+        res.json(getAllAmericanConferences(req.dynastyUserId));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load All-American conferences.', details: err.message });
+    }
+});
+
+app.get('/api/all-americans/schools', dynastyRecordsGate, (req, res) => {
+    try {
+        const scope = req.query.scope === 'conference' ? 'conference' : 'national';
+        res.json(getAllAmericanSchoolTotals(req.dynastyUserId, scope));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load All-American school totals.', details: err.message });
+    }
+});
+
 // Blocks an anonymous visitor's 4th+ upload attempt, before multer even
 // reads the file off the wire - logged-in users (req.user set by apiGate,
 // which runs first) are exempt entirely. Mounted ahead of upload.single()
@@ -591,6 +641,19 @@ async function ingestAwardsBestEffort(franchise, dynastyUserId) {
     }
 }
 
+// Separate best-effort step, same pattern as the others. National in scope
+// (every school's selections, not just the user's own team) since All-
+// Americans are inherently national/conference-wide, same as Top 25/Awards.
+async function ingestAllAmericansBestEffort(franchise, dynastyUserId) {
+    if (dynastyUserId == null) return;
+    try {
+        const result = await parseAllAmericans(franchise);
+        ingestAllAmericans(dynastyUserId, result.selections);
+    } catch (err) {
+        console.error('All-Americans ingest failed (continuing without it):', err);
+    }
+}
+
 app.post('/api/upload', apiGate, checkUploadLimit, upload.single('saveFile'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded.' });
@@ -609,6 +672,7 @@ app.post('/api/upload', apiGate, checkUploadLimit, upload.single('saveFile'), as
         await ingestRecruitingClassBestEffort(franchise, userTeam, roster, resolveDynastyUserId(req));
         await ingestNotablePlayersBestEffort(franchise, userTeam, resolveDynastyUserId(req));
         await ingestAwardsBestEffort(franchise, resolveDynastyUserId(req));
+        await ingestAllAmericansBestEffort(franchise, resolveDynastyUserId(req));
         // Most uploaders won't be logged in now that it's optional - fall
         // back to the anonymous visitor cookie (same one the unique-visitor
         // counter uses) so the admin usage dashboard doesn't go dark.
@@ -685,6 +749,7 @@ app.post('/api/refresh', localPathGate, async (req, res) => {
         await ingestRecruitingClassBestEffort(franchise, userTeam, roster, resolveDynastyUserId(req));
         await ingestNotablePlayersBestEffort(franchise, userTeam, resolveDynastyUserId(req));
         await ingestAwardsBestEffort(franchise, resolveDynastyUserId(req));
+        await ingestAllAmericansBestEffort(franchise, resolveDynastyUserId(req));
         res.json({ count: recruits.length, recruits, rosterCount: roster.length, roster, userTeam });
     } catch (err) {
         console.error(err);

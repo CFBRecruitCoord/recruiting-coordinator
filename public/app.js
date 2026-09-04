@@ -367,6 +367,7 @@
             loadTop25();
             loadConfStandings();
             loadAwards();
+            loadAllAmericans();
             maybeShowWelcomeModal();
 
             // First successful upload ever (no refresh path configured yet):
@@ -491,6 +492,7 @@
             loadTop25();
             loadConfStandings();
             loadAwards();
+            loadAllAmericans();
             maybeShowWelcomeModal();
         } catch (err) {
             console.error(err);
@@ -521,7 +523,7 @@
             // reloaded after every successful upload (see uploadFile/refreshBtn)
             // so it stays current without needing a dedicated refresh button.
             if (btn.dataset.tab === 'coachingCareerTab') { loadCoachingCareer(); loadRecruitingClasses(); loadNotablePlayers(); }
-            if (btn.dataset.tab === 'nationalTab') { loadTop25(); loadConfStandings(); loadAwards(); }
+            if (btn.dataset.tab === 'nationalTab') { loadTop25(); loadConfStandings(); loadAwards(); loadAllAmericans(); }
         });
     });
 
@@ -3147,5 +3149,222 @@
         await loadHeismanRace();
         await loadAwardsByYear();
         await loadAwardsSchools();
+    }
+
+    // ---- All-Americans (National Landscape) ----
+    // Three sections sharing one login-gate wrapper (allAmericansContent/
+    // allAmericansLoginPrompt), same pattern as Awards: National All-American
+    // (the true national 1st/2nd Team - often sparse, shown as-is),
+    // All-Conference Teams (fuller, per-conference), and a school totals
+    // leaderboard. No "current race" section - unlike Heisman, neither of
+    // these has a live in-season concept the save exposes, and preseason
+    // picks are deliberately out of scope.
+    function allAmRowsHtml(rows, colspan) {
+        if (!rows || !rows.length) return `<tr><td colspan="${colspan}" class="empty-row">No selections recorded.</td></tr>`;
+        return rows.map(r => `
+            <tr>
+                <td>${escapeHtml(r.position || '')}</td>
+                <td>${escapeHtml(r.name)}</td>
+                <td>${r.team ? teamSwatch(r.team) + ' ' + escapeHtml(r.team.name) : '&mdash;'}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderAllAmTeam(prefix, teamData) {
+        const firstBody = document.getElementById(prefix + '1stBody');
+        const secondBody = document.getElementById(prefix + '2ndBody');
+        if (firstBody) firstBody.innerHTML = allAmRowsHtml(teamData.firstTeam, 3);
+        if (secondBody) secondBody.innerHTML = allAmRowsHtml(teamData.secondTeam, 3);
+    }
+
+    // ---- National All-American ----
+    let natAllAmYears = [];
+
+    function populateNatAllAmYearSelect(selected) {
+        const sel = document.getElementById('natAllAmYearSelect');
+        if (!sel) return;
+        sel.innerHTML = natAllAmYears.map(y => `<option value="${y}">${toCalendarYear(y)}</option>`).join('');
+        if (selected != null && natAllAmYears.includes(selected)) sel.value = String(selected);
+    }
+
+    // Login-gate check lives here (first fetch on every load of this
+    // sub-tab) - loadConfAllAm/loadAllAmSchools are called right alongside
+    // it (see loadAllAmericans below) and simply won't be visible if this
+    // hides allAmericansContent.
+    async function loadNatAllAm(year) {
+        const loginPrompt = document.getElementById('allAmericansLoginPrompt');
+        const content = document.getElementById('allAmericansContent');
+        if (!loginPrompt || !content) return;
+
+        try {
+            const yearsRes = await fetch('/api/all-americans/available-years?scope=national');
+            if (yearsRes.status === 401) {
+                loginPrompt.classList.remove('hidden');
+                content.classList.add('hidden');
+                return;
+            }
+            if (!yearsRes.ok) throw new Error('Failed to load All-American years (HTTP ' + yearsRes.status + ')');
+            loginPrompt.classList.add('hidden');
+            content.classList.remove('hidden');
+
+            natAllAmYears = await yearsRes.json();
+            const targetYear = year != null ? year : (natAllAmYears.length ? natAllAmYears[0] : null);
+            populateNatAllAmYearSelect(targetYear);
+            if (targetYear == null) { renderAllAmTeam('natAllAm', {}); return; }
+
+            const teamRes = await fetch(`/api/all-americans/team?scope=national&year=${targetYear}`);
+            renderAllAmTeam('natAllAm', teamRes.ok ? await teamRes.json() : {});
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    const natAllAmYearSelect = document.getElementById('natAllAmYearSelect');
+    if (natAllAmYearSelect) {
+        natAllAmYearSelect.addEventListener('change', () => loadNatAllAm(Number(natAllAmYearSelect.value)));
+    }
+
+    // ---- All-Conference Teams ----
+    let confAllAmYears = [];
+    let confAllAmConferences = [];
+
+    function populateConfAllAmYearSelect(selected) {
+        const sel = document.getElementById('confAllAmYearSelect');
+        if (!sel) return;
+        sel.innerHTML = confAllAmYears.map(y => `<option value="${y}">${toCalendarYear(y)}</option>`).join('');
+        if (selected != null && confAllAmYears.includes(selected)) sel.value = String(selected);
+    }
+
+    function populateConfAllAmConferenceSelect(selected) {
+        const sel = document.getElementById('confAllAmConferenceSelect');
+        if (!sel) return;
+        sel.innerHTML = confAllAmConferences.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
+        if (selected && confAllAmConferences.includes(selected)) sel.value = selected;
+    }
+
+    async function loadConfAllAm(year, conference) {
+        try {
+            const [yearsRes, confRes] = await Promise.all([
+                fetch('/api/all-americans/available-years?scope=conference'),
+                fetch('/api/all-americans/conferences')
+            ]);
+            if (!yearsRes.ok) return; // 401/error already surfaced by loadNatAllAm's own call
+
+            confAllAmYears = await yearsRes.json();
+            if (confRes.ok) confAllAmConferences = await confRes.json();
+
+            const targetYear = year != null ? year : (confAllAmYears.length ? confAllAmYears[0] : null);
+            const targetConf = conference || (confAllAmConferences.length ? confAllAmConferences[0] : null);
+            populateConfAllAmYearSelect(targetYear);
+            populateConfAllAmConferenceSelect(targetConf);
+
+            if (targetYear == null || targetConf == null) { renderAllAmTeam('confAllAm', {}); return; }
+
+            const teamRes = await fetch(`/api/all-americans/team?scope=conference&year=${targetYear}&conference=${encodeURIComponent(targetConf)}`);
+            renderAllAmTeam('confAllAm', teamRes.ok ? await teamRes.json() : {});
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    const confAllAmYearSelect = document.getElementById('confAllAmYearSelect');
+    const confAllAmConferenceSelect = document.getElementById('confAllAmConferenceSelect');
+    if (confAllAmYearSelect) {
+        confAllAmYearSelect.addEventListener('change', () => {
+            const conf = confAllAmConferenceSelect ? confAllAmConferenceSelect.value : null;
+            loadConfAllAm(Number(confAllAmYearSelect.value), conf);
+        });
+    }
+    if (confAllAmConferenceSelect) {
+        confAllAmConferenceSelect.addEventListener('change', () => {
+            const year = confAllAmYearSelect ? Number(confAllAmYearSelect.value) : null;
+            loadConfAllAm(year, confAllAmConferenceSelect.value);
+        });
+    }
+
+    // ---- School Totals ----
+    function allAmSchoolDetailCards(school) {
+        if (!school || !school.selections.length) return '<div class="player-detail-empty">No selections recorded.</div>';
+        return school.selections.map(s => `
+            <div class="player-detail-card">
+                <div class="pd-header">
+                    <span class="pd-name">${escapeHtml(s.name)}</span>
+                    <span class="pd-pos">${escapeHtml(s.position || '')}</span>
+                </div>
+                <div class="pd-meta">${toCalendarYear(s.year)} &middot; ${s.team === '1st' ? '1st Team' : '2nd Team'}</div>
+            </div>
+        `).join('');
+    }
+
+    let allAmSchoolsData = [];
+
+    function renderAllAmSchools(schools) {
+        const body = document.getElementById('allAmSchoolsBody');
+        if (!body) return;
+        if (!schools.length) {
+            body.innerHTML = '<tr><td colspan="5" class="empty-row">No All-American selections recorded yet.</td></tr>';
+            return;
+        }
+        body.innerHTML = schools.map((s, i) => `
+            <tr class="team-row clickable-row" data-idx="${i}" data-colspan="5">
+                <td class="rank-cell">#${i + 1}</td>
+                <td>${s.team ? teamSwatch(s.team) + ' ' + escapeHtml(s.team.name) : '&mdash;'}</td>
+                <td class="key-stat">${s.firstTeamCount}</td>
+                <td class="key-stat">${s.secondTeamCount}</td>
+                <td class="key-stat">${s.totalSelections}</td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadAllAmSchools(scope) {
+        try {
+            const res = await fetch('/api/all-americans/schools?scope=' + (scope || 'national'));
+            allAmSchoolsData = res.ok ? await res.json() : [];
+            renderAllAmSchools(allAmSchoolsData);
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    const allAmSchoolsScopeSelect = document.getElementById('allAmSchoolsScopeSelect');
+    if (allAmSchoolsScopeSelect) {
+        allAmSchoolsScopeSelect.addEventListener('change', () => loadAllAmSchools(allAmSchoolsScopeSelect.value));
+    }
+
+    const allAmSchoolsBody = document.getElementById('allAmSchoolsBody');
+    if (allAmSchoolsBody) {
+        allAmSchoolsBody.addEventListener('click', e => {
+            const row = e.target.closest('.team-row');
+            if (!row) return;
+
+            const next = row.nextElementSibling;
+            if (next && next.classList.contains('detail-row')) {
+                next.remove();
+                row.classList.remove('expanded');
+                return;
+            }
+            document.querySelectorAll('#allAmSchoolsBody .detail-row').forEach(el => el.remove());
+            document.querySelectorAll('#allAmSchoolsBody .team-row').forEach(el => el.classList.remove('expanded'));
+
+            const school = allAmSchoolsData[Number(row.dataset.idx)];
+            const detailHtml = `
+                <tr class="detail-row">
+                    <td colspan="${row.dataset.colspan}">
+                        <div class="player-detail-panel">${allAmSchoolDetailCards(school)}</div>
+                    </td>
+                </tr>
+            `;
+            row.insertAdjacentHTML('afterend', detailHtml);
+            row.classList.add('expanded');
+        });
+    }
+
+    // Combined loader for the whole All-Americans sub-tab - called from the
+    // same trigger points as loadAwards (upload/refresh success, first
+    // National Landscape tab click).
+    async function loadAllAmericans() {
+        await loadNatAllAm();
+        await loadConfAllAm();
+        await loadAllAmSchools('national');
     }
 })();

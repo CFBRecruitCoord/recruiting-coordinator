@@ -876,6 +876,21 @@ tr.detail-row td {
     gap: 14px;
 }
 
+.all-am-teams {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.all-am-team-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+    margin: 0 0 8px;
+}
+
 .hero-stat-card {
     background: var(--panel);
     border: 1px solid var(--border);
