@@ -1524,7 +1524,6 @@ tr.detail-row td {
     border-radius: var(--radius);
     padding: 16px;
     margin-bottom: 16px;
-    max-width: 640px;
 }
 
 #usMap {
