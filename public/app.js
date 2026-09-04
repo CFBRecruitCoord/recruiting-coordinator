@@ -2109,6 +2109,28 @@
     if (schoolRecordSearch) schoolRecordSearch.addEventListener('input', renderSchoolRecords);
     if (bowlByNameSearch) bowlByNameSearch.addEventListener('input', renderBowlByNameRecords);
 
+    // Colors each of the 138 static markers with its own school's real
+    // primary/secondary colors (same colorPrimary/colorSecondary fields
+    // already used for schoolBadge() swatches and the Recruit Targets hero
+    // banner) - matched via the data-team attribute baked into each
+    // <circle> at build time against allSchoolRecords' `name` field, since
+    // color data itself only exists per-dynasty (parsed from the save
+    // file), not something that can be baked into the static markup the
+    // way the marker positions themselves were. Falls back to the default
+    // CSS color (a neutral blue) for any school with no resolvable color -
+    // shouldn't normally happen once a dynasty's teams_meta is populated,
+    // but harmless if it does.
+    function applySchoolMarkerColors() {
+        const recordsByName = new Map(allSchoolRecords.map(r => [r.name, r]));
+        document.querySelectorAll('.us-school-marker').forEach(marker => {
+            const record = recordsByName.get(marker.dataset.team);
+            if (record && record.colorPrimary) {
+                marker.style.fill = record.colorPrimary;
+                marker.style.stroke = record.colorSecondary || 'var(--bg)';
+            }
+        });
+    }
+
     // ---- US map: hover previews a state's schools, click pins it open
     // (so it still works on touch devices with no real hover) ----
     function setupUsMapInteractivity() {
@@ -2199,6 +2221,7 @@
             allSchoolRecords = await schoolsRes.json();
             renderSchoolRecords();
             setupUsMapInteractivity();
+            applySchoolMarkerColors();
 
             const [bowlRes, playoffRes, byNameRes] = await Promise.all([
                 fetch('/api/records/bowls'),
