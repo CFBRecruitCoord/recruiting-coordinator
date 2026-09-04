@@ -404,7 +404,71 @@
                     <p>This tab is your benchmark for "what does good actually look like." Whether you're deciding if your own roster is competitive at a position, figuring out how many years a recruit needs to develop into a starter, or just want to know which programs are stacked where &mdash; this is where those national baselines live. It pairs directly with the Recruit Targets tab: the position-need scoring there is built by comparing your roster against these same national averages.</p>
                 </div>
             </details>
+        </section>
 
+        <section class="records-panel top25-panel">
+            <h1 class="power-rankings-title">🏈 Top 25</h1>
+            <p class="leaderboard-hint">The save's own Media, Coaches, and CFP polls for the week, side by side with <strong>The Coordinator 25</strong> &mdash; our own blend of those polls into one consensus ranking. Offensive and Defensive Rank are the only genuinely calculated columns here. Click any ranking's column header to sort the table by it.</p>
+
+            <details class="info-box">
+                <summary>How this works</summary>
+                <div class="info-box-body">
+                    <h4>Media / Coaches / CFP</h4>
+                    <p>Pulled directly from the save's own in-game polls for this exact week &mdash; not calculated by this app at all. CFP shows <strong>NR</strong> until the game itself activates committee rankings, which (like the real CFP) doesn't happen until partway through a season.</p>
+                    <h4>The Coordinator 25</h4>
+                    <p>Our own consensus ranking, unique to this app: the straight average of the save's Media and Coaches poll ranks, folding in the CFP poll too once it's actually active. It's the closest thing to "one number" out of the three separate in-game polls.</p>
+                    <h4>Offensive Rank</h4>
+                    <p>An even blend of total yards, passing yards, rushing yards, and points scored, each measured as this team's percentile among every real FBS team. Before Week 1 of a season, this is instead projected from the save's own Offensive/Quarterback/Running Back/Wide Receiver/Tight End/Offensive Line ratings.</p>
+                    <h4>Defensive Rank</h4>
+                    <p>An even blend of yards allowed, passing yards allowed, rushing yards allowed, and points allowed (lower is better on all four), plus sacks, interceptions, and fumble recoveries (higher is better). Before Week 1, this is projected from Defensive/Defensive Line/Linebacker/Defensive Back ratings instead.</p>
+                    <h4>Historical weeks</h4>
+                    <p>Every upload/refresh saves that exact week's poll, so the search below grows the more you play. A completed season also gets a "Final" entry even if you never uploaded mid-season, since the save retains full-season stat totals for the last several years &mdash; but poll ranks (Media/Coaches/CFP/Coordinator 25) aren't retained for a season that finished before you started tracking, only Offense/Defense stay available there since those come from the save's own season-total stat cache instead.</p>
+                </div>
+            </details>
+
+            <div id="top25LoginPrompt" class="login-prompt-card hidden">
+                <h2>Log in to track the Top 25</h2>
+                <p>Like Coaching Career, the Top 25 needs an account so week-by-week history stays put across visits. Once you're logged in, just upload or refresh like normal &mdash; every week gets saved automatically.</p>
+                <div class="modal-actions">
+                    <a href="/signup.html" class="refresh-btn">Sign Up</a>
+                    <a href="/login.html" class="link-btn">Already have an account? Log In</a>
+                </div>
+            </div>
+
+            <div id="top25Content">
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <label for="top25YearSelect">Year</label>
+                        <select id="top25YearSelect"></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="top25WeekSelect">Week</label>
+                        <select id="top25WeekSelect"></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <button id="top25CurrentBtn" type="button" class="top25-current-btn">📍 Jump to Current</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table id="top25Table">
+                        <thead>
+                            <tr>
+                                <th>#</th><th>Team</th><th>Record</th><th>Conf</th>
+                                <th class="sortable-col" data-sort-key="mediaRank">Media</th>
+                                <th class="sortable-col" data-sort-key="coachesRank">Coaches</th>
+                                <th class="sortable-col" data-sort-key="cfpRank">CFP</th>
+                                <th class="sortable-col" data-sort-key="compositeRank">The Coordinator 25</th>
+                                <th class="sortable-col" data-sort-key="offenseRank">Offense</th>
+                                <th class="sortable-col" data-sort-key="defenseRank">Defense</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top25Body"><tr><td colspan="10" class="empty-row">Upload a save file to see the Top 25.</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section class="averages-panel">
             <h1 class="power-rankings-title">🏆 National Power Rankings</h1>
             <p class="leaderboard-hint power-rankings-hint">The best Offense, Defense, and Overall roster nationwide &mdash; Offense blends Quarterback/Running Back/Wide Receiver/Tight End/Offensive Line, Defense blends Defensive Line/Linebacker/Defensive Back, and Overall blends all ten position groups below.</p>
             <div id="powerRankings"><p class="empty-row">Upload a save file to see power rankings.</p></div>

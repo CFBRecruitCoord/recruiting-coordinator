@@ -22,6 +22,9 @@ const { FREE_UPLOAD_LIMIT, countSuccessfulUploadsForVisitor } = require('./lib/u
 const { parseTeamsMeta, parseBowlsMeta, parseMyTeamGames } = require('./lib/parseSchoolRecords');
 const { ingestDynastyRecords, LOCAL_DYNASTY_USER_ID } = require('./lib/dynastyIngest');
 const { getSchoolRecords, getBowlRecord, getPlayoffRecord, getBowlRecordsByName } = require('./lib/schoolRecordQueries');
+const { parseNationalTeamStats } = require('./lib/parseNationalTeamStats');
+const { computeTop25 } = require('./lib/top25');
+const { ingestTop25Snapshot, getTop25Snapshot, getLatestTop25Snapshot, getAvailableTop25Snapshots } = require('./lib/top25Ingest');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -291,6 +294,32 @@ app.get('/api/records/bowls-by-name', dynastyRecordsGate, (req, res) => {
     }
 });
 
+// ---- Top 25 Poll ----
+// Same gate as Coaching Career - a snapshot table accumulated across
+// uploads needs a durable identity. Omit year/week for the most recent
+// in-progress-season snapshot (what the poll should default to on load).
+app.get('/api/top25', dynastyRecordsGate, (req, res) => {
+    try {
+        const { year, week } = req.query;
+        const snapshot = (year != null && week != null)
+            ? getTop25Snapshot(req.dynastyUserId, Number(year), Number(week))
+            : getLatestTop25Snapshot(req.dynastyUserId);
+        res.json(snapshot || { seasonYear: null, seasonWeek: null, seasonStage: null, rows: [] });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load Top 25 poll.', details: err.message });
+    }
+});
+
+app.get('/api/top25/available', dynastyRecordsGate, (req, res) => {
+    try {
+        res.json(getAvailableTop25Snapshots(req.dynastyUserId));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load available Top 25 weeks.', details: err.message });
+    }
+});
+
 // Blocks an anonymous visitor's 4th+ upload attempt, before multer even
 // reads the file off the wire - logged-in users (req.user set by apiGate,
 // which runs first) are exempt entirely. Mounted ahead of upload.single()
@@ -335,6 +364,30 @@ async function ingestDynastyRecordsBestEffort(franchise, userTeam, dynastyUserId
     }
 }
 
+// Separate best-effort step (own try/catch) so a Top 25 failure can never
+// take down Coaching Career's ingest or the main upload response, and vice
+// versa. Snapshots the CURRENT in-progress week (so week-by-week history
+// accumulates the more the user plays) plus a "final" (season_week = -1)
+// snapshot for each of the last up-to-4 completed seasons the save still
+// retains - see dynasty_top25_snapshots in lib/authDb.js for why -1.
+async function ingestTop25BestEffort(franchise, dynastyUserId) {
+    if (dynastyUserId == null) return;
+    try {
+        const national = await parseNationalTeamStats(franchise);
+        const currentRows = computeTop25(national.currentTeams);
+        ingestTop25Snapshot(dynastyUserId, {
+            seasonYear: national.seasonYear, seasonWeek: national.seasonWeek,
+            seasonStage: national.seasonStage, rows: currentRows
+        });
+        national.historicalSeasons.forEach(season => {
+            const rows = computeTop25(season.teams);
+            ingestTop25Snapshot(dynastyUserId, { seasonYear: season.year, seasonWeek: -1, seasonStage: 'Final', rows });
+        });
+    } catch (err) {
+        console.error('Top 25 ingest failed (continuing without it):', err);
+    }
+}
+
 app.post('/api/upload', apiGate, checkUploadLimit, upload.single('saveFile'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded.' });
@@ -349,6 +402,7 @@ app.post('/api/upload', apiGate, checkUploadLimit, upload.single('saveFile'), as
         const roster = await parseRosterLandscape(franchise);
         const userTeam = await parseUserTeamContext(franchise);
         await ingestDynastyRecordsBestEffort(franchise, userTeam, resolveDynastyUserId(req));
+        await ingestTop25BestEffort(franchise, resolveDynastyUserId(req));
         // Most uploaders won't be logged in now that it's optional - fall
         // back to the anonymous visitor cookie (same one the unique-visitor
         // counter uses) so the admin usage dashboard doesn't go dark.
@@ -421,6 +475,7 @@ app.post('/api/refresh', localPathGate, async (req, res) => {
         const roster = await parseRosterLandscape(franchise);
         const userTeam = await parseUserTeamContext(franchise);
         await ingestDynastyRecordsBestEffort(franchise, userTeam, resolveDynastyUserId(req));
+        await ingestTop25BestEffort(franchise, resolveDynastyUserId(req));
         res.json({ count: recruits.length, recruits, rosterCount: roster.length, roster, userTeam });
     } catch (err) {
         console.error(err);

@@ -362,6 +362,7 @@
             renderRecruitTargets();
             hideLandingHero();
             loadCoachingCareer();
+            loadTop25();
             maybeShowWelcomeModal();
 
             // First successful upload ever (no refresh path configured yet):
@@ -481,6 +482,7 @@
             renderRecruitTargets();
             hideLandingHero();
             loadCoachingCareer();
+            loadTop25();
             maybeShowWelcomeModal();
         } catch (err) {
             console.error(err);
@@ -511,6 +513,7 @@
             // reloaded after every successful upload (see uploadFile/refreshBtn)
             // so it stays current without needing a dedicated refresh button.
             if (btn.dataset.tab === 'coachingCareerTab') loadCoachingCareer();
+            if (btn.dataset.tab === 'nationalTab') loadTop25();
         });
     });
 
@@ -2122,9 +2125,10 @@
     // but harmless if it does.
     function applySchoolMarkerColors() {
         const recordsByName = new Map(allSchoolRecords.map(r => [r.name, r]));
-        document.querySelectorAll('.us-school-marker').forEach(marker => {
-            const record = recordsByName.get(marker.dataset.team);
-            if (record && record.colorPrimary) {
+        document.querySelectorAll('.us-school-marker-group').forEach(group => {
+            const marker = group.querySelector('.us-school-marker');
+            const record = recordsByName.get(group.dataset.team);
+            if (marker && record && record.colorPrimary) {
                 marker.style.fill = record.colorPrimary;
                 marker.style.stroke = record.colorSecondary || 'var(--bg)';
             }
@@ -2298,5 +2302,158 @@
             console.error(err);
             if (schoolRecordBody) schoolRecordBody.innerHTML = `<tr><td colspan="7" class="empty-row">${escapeHtml(err.message)}</td></tr>`;
         }
+    }
+
+    // ---- Top 25 Poll (National Landscape) ----
+    // Same login gate/pattern as Coaching Career - a week-by-week history
+    // accumulated across uploads needs a durable identity. top25Available is
+    // the flat list of every (year, week) this user has a snapshot for,
+    // refreshed alongside the snapshot itself so the Year/Week selectors
+    // always reflect what's actually queryable.
+    let top25Available = [];
+
+    function top25WeekLabel(week, stage) {
+        if (week === -1) return 'Final';
+        return `Week ${week}` + (stage ? ` (${stage})` : '');
+    }
+
+    function populateTop25YearSelect(selectedYear) {
+        const sel = document.getElementById('top25YearSelect');
+        if (!sel) return;
+        const years = [...new Set(top25Available.map(a => a.seasonYear))].sort((a, b) => b - a);
+        sel.innerHTML = years.map(y => `<option value="${y}">${toCalendarYear(y)}</option>`).join('');
+        if (selectedYear != null && years.includes(selectedYear)) sel.value = String(selectedYear);
+    }
+
+    // Weeks sorted latest-first so a fresh year selection defaults (via the
+    // select's own first option) to its most recent tracked week.
+    function populateTop25WeekSelect(year, selectedWeek) {
+        const sel = document.getElementById('top25WeekSelect');
+        if (!sel) return;
+        const weeks = top25Available.filter(a => a.seasonYear === year).sort((a, b) => b.seasonWeek - a.seasonWeek);
+        sel.innerHTML = weeks.map(w => `<option value="${w.seasonWeek}">${top25WeekLabel(w.seasonWeek, w.seasonStage)}</option>`).join('');
+        if (selectedWeek != null && weeks.some(w => w.seasonWeek === selectedWeek)) sel.value = String(selectedWeek);
+    }
+
+    // Defaults to the blended "Coordinator 25" - falls back to Offense (see
+    // renderTop25Table) for a historical snapshot with no retained poll data.
+    let top25SortKey = 'compositeRank';
+    let top25CurrentRows = [];
+
+    function top25PollLabel(rank) {
+        if (rank == null) return '&mdash;';
+        if (rank <= 0) return 'NR';
+        return '#' + rank;
+    }
+
+    function renderTop25Table(rows) {
+        top25CurrentRows = rows || [];
+        const body = document.getElementById('top25Body');
+        if (!body) return;
+        if (!top25CurrentRows.length) {
+            body.innerHTML = '<tr><td colspan="10" class="empty-row">No Top 25 data for this week yet.</td></tr>';
+            return;
+        }
+
+        // A historical season (predating this feature) has no poll data at
+        // all - fall back to Offense so the table never silently renders in
+        // an arbitrary/unsorted order.
+        let key = top25SortKey;
+        if (!top25CurrentRows.some(r => r[key] != null)) key = 'offenseRank';
+
+        const sorted = top25CurrentRows
+            .filter(r => r[key] != null)
+            .sort((a, b) => a[key] - b[key])
+            .slice(0, 25);
+
+        body.innerHTML = sorted.map((r, i) => `
+            <tr>
+                <td class="rank-cell">#${i + 1}</td>
+                <td>${schoolBadge(r)}</td>
+                <td class="record-cell">${formatRecord(r.wins, r.losses, r.ties)}</td>
+                <td class="record-cell">${r.confWins != null ? formatRecord(r.confWins, r.confLosses, r.confTies) : '&mdash;'}</td>
+                <td class="key-stat${key === 'mediaRank' ? ' top25-sorted-col' : ''}">${top25PollLabel(r.mediaRank)}</td>
+                <td class="key-stat${key === 'coachesRank' ? ' top25-sorted-col' : ''}">${top25PollLabel(r.coachesRank)}</td>
+                <td class="key-stat${key === 'cfpRank' ? ' top25-sorted-col' : ''}">${top25PollLabel(r.cfpRank)}</td>
+                <td class="key-stat${key === 'compositeRank' ? ' top25-sorted-col' : ''}">${top25PollLabel(r.compositeRank)}</td>
+                <td class="key-stat${key === 'offenseRank' ? ' top25-sorted-col' : ''}">#${r.offenseRank}${r.isProjected ? ' <span class="record-detail">(proj.)</span>' : ''}</td>
+                <td class="key-stat${key === 'defenseRank' ? ' top25-sorted-col' : ''}">#${r.defenseRank}${r.isProjected ? ' <span class="record-detail">(proj.)</span>' : ''}</td>
+            </tr>
+        `).join('');
+
+        document.querySelectorAll('#top25Table th.sortable-col').forEach(th => {
+            th.classList.toggle('active-sort', th.dataset.sortKey === key);
+        });
+    }
+
+    document.querySelectorAll('#top25Table th.sortable-col').forEach(th => {
+        th.addEventListener('click', () => {
+            top25SortKey = th.dataset.sortKey;
+            renderTop25Table(top25CurrentRows);
+        });
+    });
+
+    // Omit year/week for the most recent in-progress-season snapshot
+    // ("current"). Safe to call repeatedly (lazy-loaded on first National
+    // Landscape visit, then again after every successful upload/refresh).
+    async function loadTop25(year, week) {
+        const loginPrompt = document.getElementById('top25LoginPrompt');
+        const content = document.getElementById('top25Content');
+        if (!loginPrompt || !content) return;
+
+        try {
+            const qs = (year != null && week != null) ? `?year=${year}&week=${week}` : '';
+            const [snapshotRes, availableRes] = await Promise.all([
+                fetch('/api/top25' + qs),
+                fetch('/api/top25/available')
+            ]);
+            if (snapshotRes.status === 401) {
+                loginPrompt.classList.remove('hidden');
+                content.classList.add('hidden');
+                return;
+            }
+            if (!snapshotRes.ok) throw new Error('Failed to load Top 25 (HTTP ' + snapshotRes.status + ')');
+            loginPrompt.classList.add('hidden');
+            content.classList.remove('hidden');
+
+            if (availableRes.ok) top25Available = await availableRes.json();
+            const snapshot = await snapshotRes.json();
+
+            if (snapshot.seasonYear == null) {
+                renderTop25Table([]);
+                return;
+            }
+            populateTop25YearSelect(snapshot.seasonYear);
+            populateTop25WeekSelect(snapshot.seasonYear, snapshot.seasonWeek);
+            renderTop25Table(snapshot.rows);
+        } catch (err) {
+            console.error(err);
+            const body = document.getElementById('top25Body');
+            if (body) body.innerHTML = `<tr><td colspan="10" class="empty-row">${escapeHtml(err.message)}</td></tr>`;
+        }
+    }
+
+    const top25YearSelect = document.getElementById('top25YearSelect');
+    const top25WeekSelect = document.getElementById('top25WeekSelect');
+    const top25CurrentBtn = document.getElementById('top25CurrentBtn');
+
+    if (top25YearSelect) {
+        top25YearSelect.addEventListener('change', () => {
+            const year = Number(top25YearSelect.value);
+            populateTop25WeekSelect(year, null);
+            if (top25WeekSelect && top25WeekSelect.value !== '') {
+                loadTop25(year, Number(top25WeekSelect.value));
+            }
+        });
+    }
+    if (top25WeekSelect) {
+        top25WeekSelect.addEventListener('change', () => {
+            if (top25YearSelect && top25WeekSelect.value !== '') {
+                loadTop25(Number(top25YearSelect.value), Number(top25WeekSelect.value));
+            }
+        });
+    }
+    if (top25CurrentBtn) {
+        top25CurrentBtn.addEventListener('click', () => loadTop25());
     }
 })();

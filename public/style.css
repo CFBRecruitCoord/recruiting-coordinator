@@ -1470,6 +1470,50 @@ tr.detail-row td {
     margin: 24px 0 12px;
 }
 
+.top25-panel .key-stat {
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+}
+
+.top25-panel { margin-bottom: 24px; }
+
+.top25-panel th.sortable-col {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s ease;
+}
+.top25-panel th.sortable-col:hover { color: var(--text); }
+.top25-panel th.sortable-col.active-sort { color: var(--accent); }
+.top25-panel th.sortable-col.active-sort::after { content: ' \25BE'; font-size: 10px; }
+
+.top25-panel td.top25-sorted-col {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.top25-current-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 107, 53, 0.1);
+    border: 1px solid rgba(255, 107, 53, 0.45);
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 12.5px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+}
+.top25-current-btn:hover {
+    background: linear-gradient(180deg, #ff7a45, var(--accent));
+    border-color: transparent;
+    color: #1a0f08;
+    box-shadow: 0 4px 14px rgba(255, 107, 53, 0.35);
+}
+.top25-current-btn:active { transform: scale(0.96); }
+
 .records-panel .wide-search {
     max-width: 320px;
     margin-bottom: 12px;
