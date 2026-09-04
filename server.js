@@ -19,6 +19,9 @@ const {
 } = require('./lib/feedback');
 const { trackVisit, pruneOldVisits, VISITOR_COOKIE_NAME } = require('./lib/visitors');
 const { FREE_UPLOAD_LIMIT, countSuccessfulUploadsForVisitor } = require('./lib/uploadLimits');
+const { parseTeamsMeta, parseBowlsMeta, parseMyTeamGames } = require('./lib/parseSchoolRecords');
+const { ingestDynastyRecords, LOCAL_DYNASTY_USER_ID } = require('./lib/dynastyIngest');
+const { getSchoolRecords, getBowlRecord, getPlayoffRecord, getBowlRecordsByName } = require('./lib/schoolRecordQueries');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -193,6 +196,24 @@ function apiGate(req, res, next) {
     next();
 }
 
+// Coaching Career / Rivalries & Records is the one recruiting-adjacent
+// feature that DOES require a durable identity - it's built by accumulating
+// game results across many uploads over a dynasty's lifetime, which an
+// anonymous visitor cookie is too fragile to anchor (clearing cookies would
+// wipe seasons of history, not just an upload-count nudge). Personal mode
+// has no login concept at all, so it gets the reserved local sentinel id
+// instead of being asked to sign in for a single-user tool.
+function dynastyRecordsGate(req, res, next) {
+    if (!MULTI_TENANT_MODE) {
+        req.dynastyUserId = LOCAL_DYNASTY_USER_ID;
+        return next();
+    }
+    return requireAuth(req, res, () => {
+        req.dynastyUserId = req.user.id;
+        next();
+    });
+}
+
 app.get('/', pageGate, (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
@@ -230,6 +251,46 @@ app.get('/api/feedback/mine', requireAuth, (req, res) => {
     }
 });
 
+// ---- Coaching Career / Rivalries & Records ----
+// All four behind dynastyRecordsGate: a real account in hosted mode (401 if
+// anonymous - the frontend shows a "log in to use this" prompt on that
+// specific status), or the implicit local dynasty in personal mode.
+app.get('/api/records/schools', dynastyRecordsGate, (req, res) => {
+    try {
+        res.json(getSchoolRecords(req.dynastyUserId));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load school records.', details: err.message });
+    }
+});
+
+app.get('/api/records/bowls', dynastyRecordsGate, (req, res) => {
+    try {
+        res.json(getBowlRecord(req.dynastyUserId));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load bowl record.', details: err.message });
+    }
+});
+
+app.get('/api/records/playoffs', dynastyRecordsGate, (req, res) => {
+    try {
+        res.json(getPlayoffRecord(req.dynastyUserId));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load playoff record.', details: err.message });
+    }
+});
+
+app.get('/api/records/bowls-by-name', dynastyRecordsGate, (req, res) => {
+    try {
+        res.json(getBowlRecordsByName(req.dynastyUserId));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load bowl records.', details: err.message });
+    }
+});
+
 // Blocks an anonymous visitor's 4th+ upload attempt, before multer even
 // reads the file off the wire - logged-in users (req.user set by apiGate,
 // which runs first) are exempt entirely. Mounted ahead of upload.single()
@@ -250,6 +311,30 @@ function checkUploadLimit(req, res, next) {
     next();
 }
 
+// Best-effort Coaching Career capture, shared by /api/upload and
+// /api/refresh - reuses the already-open franchise file (no re-parsing
+// cost) to also pull team/bowl/game data and merge it into the user's
+// persistent record history. dynastyUserId is null when a hosted visitor
+// isn't logged in (recruiting features stay fully open regardless - this
+// is purely an additional capture on top, silently skipped in that case,
+// never something that can fail the actual upload response).
+function resolveDynastyUserId(req) {
+    if (!MULTI_TENANT_MODE) return LOCAL_DYNASTY_USER_ID;
+    return req.user ? req.user.id : null;
+}
+
+async function ingestDynastyRecordsBestEffort(franchise, userTeam, dynastyUserId) {
+    if (dynastyUserId == null) return;
+    try {
+        const teamsMeta = await parseTeamsMeta(franchise);
+        const bowlsMeta = await parseBowlsMeta(franchise);
+        const games = userTeam ? await parseMyTeamGames(franchise, userTeam.teamIndex) : [];
+        ingestDynastyRecords(dynastyUserId, { teamsMeta, bowlsMeta, games });
+    } catch (err) {
+        console.error('Coaching Career ingest failed (continuing without it):', err);
+    }
+}
+
 app.post('/api/upload', apiGate, checkUploadLimit, upload.single('saveFile'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded.' });
@@ -263,6 +348,7 @@ app.post('/api/upload', apiGate, checkUploadLimit, upload.single('saveFile'), as
         const recruits = await parseRecruits(franchise);
         const roster = await parseRosterLandscape(franchise);
         const userTeam = await parseUserTeamContext(franchise);
+        await ingestDynastyRecordsBestEffort(franchise, userTeam, resolveDynastyUserId(req));
         // Most uploaders won't be logged in now that it's optional - fall
         // back to the anonymous visitor cookie (same one the unique-visitor
         // counter uses) so the admin usage dashboard doesn't go dark.
@@ -334,6 +420,7 @@ app.post('/api/refresh', localPathGate, async (req, res) => {
         const recruits = await parseRecruits(franchise);
         const roster = await parseRosterLandscape(franchise);
         const userTeam = await parseUserTeamContext(franchise);
+        await ingestDynastyRecordsBestEffort(franchise, userTeam, resolveDynastyUserId(req));
         res.json({ count: recruits.length, recruits, rosterCount: roster.length, roster, userTeam });
     } catch (err) {
         console.error(err);

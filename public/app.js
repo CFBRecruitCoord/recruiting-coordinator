@@ -361,6 +361,7 @@
             renderPowerRankings();
             renderRecruitTargets();
             hideLandingHero();
+            loadCoachingCareer();
             maybeShowWelcomeModal();
 
             // First successful upload ever (no refresh path configured yet):
@@ -479,6 +480,7 @@
             renderPowerRankings();
             renderRecruitTargets();
             hideLandingHero();
+            loadCoachingCareer();
             maybeShowWelcomeModal();
         } catch (err) {
             console.error(err);
@@ -504,16 +506,35 @@
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
             btn.classList.add('active');
             document.getElementById(btn.dataset.tab).classList.add('active');
+            // Lazy-loaded on first visit rather than at page load, since it's
+            // independent of whatever's been uploaded this session - also
+            // reloaded after every successful upload (see uploadFile/refreshBtn)
+            // so it stays current without needing a dedicated refresh button.
+            if (btn.dataset.tab === 'coachingCareerTab') loadCoachingCareer();
         });
     });
 
-    // Recruit Explorer / Class Landscape sub-tabs - same active-swap pattern
-    // as the top-level tabs above, just scoped to the one .sub-tabs group
-    // that currently exists on the page.
+    // Sub-tabs (pill style: Recruit Explorer/Class Landscape/etc. under
+    // Dynasty Recruiting, Usage Stats/Feedback under Admin, Rivalries &
+    // Records under Coaching Career) - same active-swap pattern as the
+    // top-level tabs above, just scoped one level down.
     document.querySelectorAll('.sub-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.sub-tab-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(btn.dataset.subtab).classList.add('active');
+        });
+    });
+
+    // Third-level nav (Every School/Bowl Games/Playoffs, inside Rivalries &
+    // Records) - deliberately different, non-hyphenated class names
+    // (.subtabs/.subtab-btn) from .sub-tabs/.sub-tab-btn above, purely so
+    // the two levels of nesting stay visually and structurally distinct.
+    document.querySelectorAll('.subtab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.subtab-panel').forEach(p => p.classList.remove('active'));
             btn.classList.add('active');
             document.getElementById(btn.dataset.subtab).classList.add('active');
         });
@@ -1974,6 +1995,223 @@
         } catch (err) {
             console.error(err);
             summary.innerHTML = `<p class="empty-row">${escapeHtml(err.message)}</p>`;
+        }
+    }
+
+    // ================= COACHING CAREER / RIVALRIES & RECORDS =================
+    // Dynasty year numbers from the save are ordinals starting at 0 (Year 0,
+    // Year 1, ...) - every place a year is shown to the user displays the
+    // real calendar year instead: Year 0 = 2026, Year 1 = 2027, etc.
+    const DYNASTY_BASE_YEAR = 2026;
+    function toCalendarYear(dynastyYearOrdinal) {
+        if (dynastyYearOrdinal == null) return '';
+        return DYNASTY_BASE_YEAR + dynastyYearOrdinal;
+    }
+
+    function formatRecord(w, l, t) {
+        return t > 0 ? `${w}-${l}-${t}` : `${w}-${l}`;
+    }
+
+    function formatGameDetail(g, opts) {
+        opts = opts || {};
+        if (!g) return '&mdash;';
+        const scoreLine = `${g.myScore}-${g.oppScore}`;
+        const cls = g.margin >= 0 ? 'good' : 'bad';
+        const yearWk = `${toCalendarYear(g.year)}, Wk ${g.week}`;
+        const opponentLine = opts.showOpponent && g.opponentName ? `<span class="record-detail">vs ${escapeHtml(g.opponentName)}</span>` : '';
+        return `<span class="record-detail ${cls}">${scoreLine}</span><span class="record-detail">${yearWk}</span>${opponentLine}`;
+    }
+
+    function schoolBadge(r) {
+        return `
+            <span class="school-badge">
+                <span class="badge-swatch" style="background:${r.colorPrimary || '#333'}; color:${r.colorSecondary || '#fff'};">${escapeHtml(r.abbr || r.name.slice(0, 3).toUpperCase())}</span>
+                <span>
+                    <span class="name-cell">${escapeHtml(r.name)}</span>
+                    <span class="record-detail">${escapeHtml(r.mascot || '')}</span>
+                </span>
+            </span>
+        `;
+    }
+
+    let allSchoolRecords = [];
+    let allBowlByNameRecords = [];
+
+    const schoolRecordBody = document.getElementById('schoolRecordBody');
+    const schoolRecordSearch = document.getElementById('schoolRecordSearch');
+    const bowlByNameBody = document.getElementById('bowlByNameBody');
+    const bowlByNameSearch = document.getElementById('bowlByNameSearch');
+
+    function renderSchoolRecords() {
+        if (!schoolRecordBody) return;
+        const q = schoolRecordSearch.value.trim().toLowerCase();
+        let rows = allSchoolRecords.filter(r => !q || r.name.toLowerCase().includes(q));
+        rows = rows.slice().sort((a, b) => b.gamesPlayed - a.gamesPlayed || a.name.localeCompare(b.name));
+
+        if (!rows.length) {
+            schoolRecordBody.innerHTML = '<tr><td colspan="7" class="empty-row">No schools match your search.</td></tr>';
+            return;
+        }
+
+        schoolRecordBody.innerHTML = rows.map(r => `
+            <tr>
+                <td>${schoolBadge(r)}</td>
+                <td class="record-cell">${formatRecord(r.wins, r.losses, r.ties)}</td>
+                <td class="record-cell">${formatRecord(r.homeWins, r.homeLosses, r.homeTies)}</td>
+                <td class="record-cell">${formatRecord(r.awayWins, r.awayLosses, r.awayTies)}</td>
+                <td class="record-cell">${r.lastWinYear != null ? `${toCalendarYear(r.lastWinYear)} (Wk ${r.lastWinWeek})` : '&mdash;'}</td>
+                <td class="record-cell">${formatGameDetail(r.biggestWin)}</td>
+                <td class="record-cell">${formatGameDetail(r.worstLoss)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderAggregateRecord(tbody, r, colspan) {
+        if (!tbody) return;
+        if (!r || r.gamesPlayed === 0) {
+            tbody.innerHTML = `<tr><td colspan="${colspan}" class="empty-row">No games recorded yet.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = `
+            <tr>
+                <td class="record-cell">${formatRecord(r.wins, r.losses, r.ties)}</td>
+                <td class="record-cell">${formatRecord(r.homeWins, r.homeLosses, r.homeTies)}</td>
+                <td class="record-cell">${formatRecord(r.awayWins, r.awayLosses, r.awayTies)}</td>
+                <td class="record-cell">${r.lastWinYear != null ? `${toCalendarYear(r.lastWinYear)} (Wk ${r.lastWinWeek})` : '&mdash;'}</td>
+                <td class="record-cell">${formatGameDetail(r.biggestWin, { showOpponent: true })}</td>
+                <td class="record-cell">${formatGameDetail(r.worstLoss, { showOpponent: true })}</td>
+            </tr>
+        `;
+    }
+
+    function renderBowlByNameRecords() {
+        if (!bowlByNameBody) return;
+        const q = bowlByNameSearch.value.trim().toLowerCase();
+        let rows = allBowlByNameRecords.filter(r => !q || r.name.toLowerCase().includes(q));
+        rows = rows.slice().sort((a, b) => b.gamesPlayed - a.gamesPlayed || a.name.localeCompare(b.name));
+
+        if (!rows.length) {
+            bowlByNameBody.innerHTML = '<tr><td colspan="5" class="empty-row">No bowl games match your search.</td></tr>';
+            return;
+        }
+
+        bowlByNameBody.innerHTML = rows.map(r => `
+            <tr>
+                <td class="name-cell">${escapeHtml(r.name)}</td>
+                <td class="record-cell">${formatRecord(r.wins, r.losses, r.ties)}</td>
+                <td class="record-cell">${r.lastWinYear != null ? `${toCalendarYear(r.lastWinYear)} (Wk ${r.lastWinWeek})` : '&mdash;'}</td>
+                <td class="record-cell">${formatGameDetail(r.biggestWin, { showOpponent: true })}</td>
+                <td class="record-cell">${formatGameDetail(r.worstLoss, { showOpponent: true })}</td>
+            </tr>
+        `).join('');
+    }
+
+    if (schoolRecordSearch) schoolRecordSearch.addEventListener('input', renderSchoolRecords);
+    if (bowlByNameSearch) bowlByNameSearch.addEventListener('input', renderBowlByNameRecords);
+
+    // ---- US map: hover previews a state's schools, click pins it open
+    // (so it still works on touch devices with no real hover) ----
+    function setupUsMapInteractivity() {
+        const usMap = document.getElementById('usMap');
+        const popup = document.getElementById('usMapPopup');
+        const popupTitle = document.getElementById('usMapPopupTitle');
+        const popupBody = document.getElementById('usMapPopupBody');
+        const popupClose = document.getElementById('usMapPopupClose');
+        if (!usMap || usMap.dataset.wired) return; // wire the hover/click listeners only once
+        usMap.dataset.wired = 'true';
+
+        let pinnedState = null;
+
+        function showStatePopup(pathEl) {
+            const stateName = pathEl.dataset.name;
+            const schools = allSchoolRecords
+                .filter(r => r.state === stateName)
+                .slice()
+                .sort((a, b) => b.gamesPlayed - a.gamesPlayed || a.name.localeCompare(b.name));
+
+            popupTitle.textContent = stateName;
+            popupBody.innerHTML = schools.length
+                ? schools.map(r => `
+                    <div class="us-map-popup-school">
+                        <div>
+                            <div class="us-map-popup-school-name">${escapeHtml(r.name)}</div>
+                            <div class="us-map-popup-school-detail">${r.lastAwayWinYear != null
+                                ? `Last won there: ${toCalendarYear(r.lastAwayWinYear)} (Wk ${r.lastAwayWinWeek})`
+                                : 'Never won there'}</div>
+                        </div>
+                        <div class="us-map-popup-record">${formatRecord(r.wins, r.losses, r.ties)}</div>
+                    </div>
+                `).join('')
+                : '<p class="empty-row">No tracked schools in this state.</p>';
+
+            popup.classList.remove('hidden');
+            document.querySelectorAll('.us-state').forEach(p => p.classList.remove('us-state-active'));
+            pathEl.classList.add('us-state-active');
+        }
+
+        function hideStatePopup() {
+            popup.classList.add('hidden');
+            document.querySelectorAll('.us-state').forEach(p => p.classList.remove('us-state-active'));
+            pinnedState = null;
+        }
+
+        document.querySelectorAll('.us-state').forEach(pathEl => {
+            pathEl.addEventListener('mouseenter', () => {
+                if (pinnedState) return; // a click-pinned popup takes priority over hover
+                showStatePopup(pathEl);
+            });
+            pathEl.addEventListener('mouseleave', () => {
+                if (pinnedState) return;
+                hideStatePopup();
+            });
+            pathEl.addEventListener('click', () => {
+                if (pinnedState === pathEl) { hideStatePopup(); return; }
+                pinnedState = pathEl;
+                showStatePopup(pathEl);
+            });
+        });
+
+        if (popupClose) popupClose.addEventListener('click', hideStatePopup);
+    }
+
+    // Fetches everything Rivalries & Records needs. 401 on the first call
+    // means dynastyRecordsGate blocked an anonymous hosted visitor - shows
+    // the login prompt instead of empty tables, since there's a real reason
+    // (not just "no data yet") that nothing can load. Safe to call
+    // repeatedly (lazy-loaded on first tab visit, then again after every
+    // successful upload - see the top-tab click handler and uploadFile()).
+    async function loadCoachingCareer() {
+        const loginPrompt = document.getElementById('coachingCareerLoginPrompt');
+        const content = document.getElementById('coachingCareerContent');
+        if (!loginPrompt || !content) return;
+
+        try {
+            const schoolsRes = await fetch('/api/records/schools');
+            if (schoolsRes.status === 401) {
+                loginPrompt.classList.remove('hidden');
+                content.classList.add('hidden');
+                return;
+            }
+            if (!schoolsRes.ok) throw new Error('Failed to load records (HTTP ' + schoolsRes.status + ')');
+            loginPrompt.classList.add('hidden');
+            content.classList.remove('hidden');
+
+            allSchoolRecords = await schoolsRes.json();
+            renderSchoolRecords();
+            setupUsMapInteractivity();
+
+            const [bowlRes, playoffRes, byNameRes] = await Promise.all([
+                fetch('/api/records/bowls'),
+                fetch('/api/records/playoffs'),
+                fetch('/api/records/bowls-by-name')
+            ]);
+            renderAggregateRecord(document.getElementById('bowlRecordBody'), await bowlRes.json(), 6);
+            renderAggregateRecord(document.getElementById('playoffRecordBody'), await playoffRes.json(), 6);
+            allBowlByNameRecords = await byNameRes.json();
+            renderBowlByNameRecords();
+        } catch (err) {
+            console.error(err);
+            if (schoolRecordBody) schoolRecordBody.innerHTML = `<tr><td colspan="7" class="empty-row">${escapeHtml(err.message)}</td></tr>`;
         }
     }
 })();
