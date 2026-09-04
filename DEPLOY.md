@@ -1,4 +1,4 @@
-# Deploying Recruiting Coordinator (hosted / multi-tenant mode)
+# Deploying Dynasty Coordinator (hosted / multi-tenant mode)
 
 This app runs in two modes from the same codebase:
 

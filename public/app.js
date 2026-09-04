@@ -362,7 +362,11 @@
             renderRecruitTargets();
             hideLandingHero();
             loadCoachingCareer();
+            loadRecruitingClasses();
+            loadNotablePlayers();
             loadTop25();
+            loadConfStandings();
+            loadAwards();
             maybeShowWelcomeModal();
 
             // First successful upload ever (no refresh path configured yet):
@@ -380,7 +384,7 @@
                 showAccountModal({
                     icon: '🎉',
                     title: `That's ${data.freeUploadInfo.limit} uploads without an account!`,
-                    message: `Create an account to keep using Recruiting Coordinator - it only takes a few seconds.`
+                    message: `Create an account to keep using Dynasty Coordinator - it only takes a few seconds.`
                 });
             }
         } catch (err) {
@@ -482,7 +486,11 @@
             renderRecruitTargets();
             hideLandingHero();
             loadCoachingCareer();
+            loadRecruitingClasses();
+            loadNotablePlayers();
             loadTop25();
+            loadConfStandings();
+            loadAwards();
             maybeShowWelcomeModal();
         } catch (err) {
             console.error(err);
@@ -512,19 +520,26 @@
             // independent of whatever's been uploaded this session - also
             // reloaded after every successful upload (see uploadFile/refreshBtn)
             // so it stays current without needing a dedicated refresh button.
-            if (btn.dataset.tab === 'coachingCareerTab') loadCoachingCareer();
-            if (btn.dataset.tab === 'nationalTab') loadTop25();
+            if (btn.dataset.tab === 'coachingCareerTab') { loadCoachingCareer(); loadRecruitingClasses(); loadNotablePlayers(); }
+            if (btn.dataset.tab === 'nationalTab') { loadTop25(); loadConfStandings(); loadAwards(); }
         });
     });
 
     // Sub-tabs (pill style: Recruit Explorer/Class Landscape/etc. under
-    // Dynasty Recruiting, Usage Stats/Feedback under Admin, Rivalries &
-    // Records under Coaching Career) - same active-swap pattern as the
-    // top-level tabs above, just scoped one level down.
+    // Recruiting Coordinator, Top 25/National Power Rankings under National
+    // Landscape, Usage Stats/Feedback under Admin, Rivalries & Records under
+    // Coaching Career) - same active-swap pattern as the top-level tabs
+    // above, just scoped one level down. Deliberately scoped to the
+    // enclosing .tab-panel (not a page-wide querySelectorAll) - now that more
+    // than one top-level tab has its own switchable sub-tab group, a global
+    // active-swap would clear another tab's sub-tab selection (e.g. clicking
+    // a National Landscape sub-tab would deactivate every Recruiting
+    // Coordinator sub-tab too, leaving nothing visible there on switching back).
     document.querySelectorAll('.sub-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.sub-tab-panel').forEach(p => p.classList.remove('active'));
+            const scope = btn.closest('.tab-panel') || document;
+            scope.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+            scope.querySelectorAll('.sub-tab-panel').forEach(p => p.classList.remove('active'));
             btn.classList.add('active');
             document.getElementById(btn.dataset.subtab).classList.add('active');
         });
@@ -2304,6 +2319,285 @@
         }
     }
 
+    // ---- Recruiting Classes (Coaching Career) ----
+    // Same login gate/pattern as Rivalries & Records - a class history
+    // accumulated across uploads needs a durable identity. Each year's row
+    // expands in place to show the full signee list, same interaction as
+    // the Top 5 Teams table on National Landscape. Shared by Best Players
+    // below: starString/teamSwatch aren't specific to recruiting.
+    const STAR_CHAR = '★';
+    function starString(stars) {
+        return stars ? STAR_CHAR.repeat(stars) : '&mdash;';
+    }
+
+    function teamSwatch(team) {
+        if (!team) return '';
+        const abbr = team.abbr || (team.name ? team.name.slice(0, 3).toUpperCase() : '');
+        return `<span class="badge-swatch" style="background:${team.colorPrimary || '#333'}; color:${team.colorSecondary || '#fff'};">${escapeHtml(abbr)}</span>`;
+    }
+
+    // fallbackTeam covers the top-signees list, where every signee already
+    // carries its own .team; falls back to the class row's team when
+    // rendering one year's expanded signee list (every signee in a single
+    // class year necessarily signed with the same school).
+    function signeeDetailCards(signees, fallbackTeam) {
+        if (!signees.length) {
+            return '<div class="player-detail-empty">No signees recorded for this class.</div>';
+        }
+        return signees
+            .slice()
+            .sort((a, b) => (b.overall || 0) - (a.overall || 0) || (b.stars || 0) - (a.stars || 0))
+            .map(s => {
+                const team = s.team || fallbackTeam;
+                return `
+                    <div class="player-detail-card">
+                        <div class="pd-header">
+                            ${teamSwatch(team)}
+                            <span class="pd-name">${escapeHtml(s.name)}</span>
+                            <span class="pd-pos">${escapeHtml(s.position || '')}</span>
+                        </div>
+                        <div class="pd-meta">${starString(s.stars)} &middot; Overall ${s.overall != null ? s.overall : '&mdash;'}${s.homeState ? ` &middot; ${escapeHtml(s.homeState)}` : ''}${team ? ` &middot; ${escapeHtml(team.name)}` : ''}</div>
+                    </div>
+                `;
+            }).join('');
+    }
+
+    function renderRecruitingClasses(classes) {
+        const body = document.getElementById('recruitingClassesBody');
+        if (!body) return;
+        if (!classes.length) {
+            body.innerHTML = '<tr><td colspan="5" class="empty-row">No recruiting classes recorded yet - upload again once your next class signs.</td></tr>';
+            return;
+        }
+        body.innerHTML = classes.map(c => `
+            <tr class="team-row clickable-row" data-year="${c.classYear}" data-colspan="5">
+                <td>${toCalendarYear(c.classYear)}</td>
+                <td>${c.team ? teamSwatch(c.team) + ' ' + escapeHtml(c.team.name) : '&mdash;'}</td>
+                <td class="key-stat">${c.signeeCount}</td>
+                <td class="key-stat">${c.avgStars != null ? c.avgStars.toFixed(2) : '&mdash;'}</td>
+                <td class="key-stat">${c.blueChipCount}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderRecruitingCareerStats(summary) {
+        const el = document.getElementById('recruitingCareerStats');
+        if (el) {
+            el.innerHTML = `
+                <div class="hero-stat-card">
+                    <div class="hero-stat-icon">📜</div>
+                    <div class="hero-stat-label">Classes Tracked</div>
+                    <div class="hero-stat-value">${summary.classYearsTracked}</div>
+                </div>
+                <div class="hero-stat-card">
+                    <div class="hero-stat-icon">✍️</div>
+                    <div class="hero-stat-label">Total Signees</div>
+                    <div class="hero-stat-value">${summary.signeeCount}</div>
+                </div>
+                <div class="hero-stat-card">
+                    <div class="hero-stat-icon">⭐</div>
+                    <div class="hero-stat-label">Career Avg Stars</div>
+                    <div class="hero-stat-value">${summary.avgStars != null ? summary.avgStars.toFixed(2) : '&mdash;'}</div>
+                </div>
+                <div class="hero-stat-card hero-stat-budget">
+                    <div class="hero-stat-icon">💎</div>
+                    <div class="hero-stat-label">4&ndash;5&#9733; Blue-Chips</div>
+                    <div class="hero-stat-value">${summary.blueChipCount}</div>
+                </div>
+            `;
+        }
+        const topEl = document.getElementById('recruitingTopSignees');
+        if (topEl) topEl.innerHTML = signeeDetailCards(summary.topSignees || []);
+    }
+
+    let allRecruitingClasses = [];
+
+    function populateRecruitingSchoolSelect(schools, selected) {
+        const sel = document.getElementById('recruitingClassesSchoolSelect');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Whole Career (All Schools)</option>' +
+            schools.map(s => `<option value="${s.teamIndex}">${escapeHtml(s.name)}</option>`).join('');
+        sel.value = selected != null ? String(selected) : '';
+    }
+
+    // teamIndex omitted = whole career across every school this coach has
+    // been at; passed = scoped to just that one school.
+    async function loadRecruitingClasses(teamIndex) {
+        const loginPrompt = document.getElementById('recruitingClassesLoginPrompt');
+        const content = document.getElementById('recruitingClassesContent');
+        if (!loginPrompt || !content) return;
+
+        try {
+            const qs = teamIndex != null ? `?team=${teamIndex}` : '';
+            const [classesRes, careerRes, schoolsRes] = await Promise.all([
+                fetch('/api/records/recruiting-classes' + qs),
+                fetch('/api/records/recruiting-career' + qs),
+                fetch('/api/records/recruiting-schools')
+            ]);
+            if (classesRes.status === 401) {
+                loginPrompt.classList.remove('hidden');
+                content.classList.add('hidden');
+                return;
+            }
+            if (!classesRes.ok) throw new Error('Failed to load recruiting classes (HTTP ' + classesRes.status + ')');
+            loginPrompt.classList.add('hidden');
+            content.classList.remove('hidden');
+
+            if (schoolsRes.ok) populateRecruitingSchoolSelect(await schoolsRes.json(), teamIndex);
+            allRecruitingClasses = await classesRes.json();
+            renderRecruitingClasses(allRecruitingClasses);
+            if (careerRes.ok) renderRecruitingCareerStats(await careerRes.json());
+        } catch (err) {
+            console.error(err);
+            const body = document.getElementById('recruitingClassesBody');
+            if (body) body.innerHTML = `<tr><td colspan="5" class="empty-row">${escapeHtml(err.message)}</td></tr>`;
+        }
+    }
+
+    const recruitingClassesBody = document.getElementById('recruitingClassesBody');
+    if (recruitingClassesBody) {
+        recruitingClassesBody.addEventListener('click', e => {
+            const row = e.target.closest('.team-row');
+            if (!row) return;
+
+            const next = row.nextElementSibling;
+            if (next && next.classList.contains('detail-row')) {
+                next.remove();
+                row.classList.remove('expanded');
+                return;
+            }
+            document.querySelectorAll('#recruitingClassesBody .detail-row').forEach(el => el.remove());
+            document.querySelectorAll('#recruitingClassesBody .team-row').forEach(el => el.classList.remove('expanded'));
+
+            const cls = allRecruitingClasses.find(c => String(c.classYear) === row.dataset.year);
+            const detailHtml = `
+                <tr class="detail-row">
+                    <td colspan="${row.dataset.colspan}">
+                        <div class="player-detail-panel">${signeeDetailCards(cls ? cls.signees : [], cls ? cls.team : null)}</div>
+                    </td>
+                </tr>
+            `;
+            row.insertAdjacentHTML('afterend', detailHtml);
+            row.classList.add('expanded');
+        });
+    }
+
+    const recruitingClassesSchoolSelect = document.getElementById('recruitingClassesSchoolSelect');
+    if (recruitingClassesSchoolSelect) {
+        recruitingClassesSchoolSelect.addEventListener('change', () => {
+            const val = recruitingClassesSchoolSelect.value;
+            loadRecruitingClasses(val === '' ? null : Number(val));
+        });
+    }
+
+    // ---- Best Players (Coaching Career) ----
+    // Same login gate/pattern as the rest of Coaching Career. Overall drives
+    // the ranking; Key Stats is whichever of that position's real career
+    // totals the save tracks (see KEY_STAT_FIELDS_BY_POSITION in
+    // lib/parseNotablePlayers.js) - blank for positions with no comparable
+    // individual counting stat (OL/K/P).
+    const KEY_STAT_LABELS = {
+        passYards: 'Pass Yds', passTDs: 'Pass TD', passInts: 'INT',
+        rushYards: 'Rush Yds', rushTDs: 'Rush TD',
+        receiveYards: 'Rec Yds', receiveTDs: 'Rec TD', receiveCatches: 'Rec',
+        tackles: 'Tkl', sacks: 'Sacks', tacklesForLoss: 'TFL', ints: 'INT', passDeflections: 'PD'
+    };
+
+    function keyStatsLine(stats) {
+        if (!stats || !Object.keys(stats).length) return '&mdash;';
+        return Object.entries(stats)
+            .filter(([, v]) => v != null)
+            .map(([k, v]) => `${v} ${KEY_STAT_LABELS[k] || k}`)
+            .join(' &middot; ');
+    }
+
+    let notablePlayers = [];
+
+    function populateNotablePlayersSchoolSelect(schools, selected) {
+        const sel = document.getElementById('notablePlayersSchoolSelect');
+        if (!sel) return;
+        sel.innerHTML = '<option value="">Whole Career (All Schools)</option>' +
+            schools.map(s => `<option value="${s.teamIndex}">${escapeHtml(s.name)}</option>`).join('');
+        sel.value = selected != null ? String(selected) : '';
+    }
+
+    function populateNotablePlayersPositionSelect(players) {
+        const sel = document.getElementById('notablePlayersPositionSelect');
+        if (!sel) return;
+        const current = sel.value;
+        const positions = [...new Set(players.map(p => p.position))].sort();
+        sel.innerHTML = '<option value="">All Positions</option>' + positions.map(p => `<option value="${p}">${p}</option>`).join('');
+        if (positions.includes(current)) sel.value = current;
+    }
+
+    function renderNotablePlayers() {
+        const body = document.getElementById('notablePlayersBody');
+        if (!body) return;
+        const posSel = document.getElementById('notablePlayersPositionSelect');
+        const pos = posSel ? posSel.value : '';
+        const filtered = pos ? notablePlayers.filter(p => p.position === pos) : notablePlayers;
+
+        if (!filtered.length) {
+            body.innerHTML = '<tr><td colspan="5" class="empty-row">No notable players recorded yet - upload again once your starters take the field.</td></tr>';
+            return;
+        }
+        body.innerHTML = filtered.map((p, i) => `
+            <tr>
+                <td class="rank-cell">#${i + 1}</td>
+                <td>
+                    <span class="pd-name">${escapeHtml(p.name)}</span>
+                    <span class="record-detail">${escapeHtml(p.position)}${p.schoolYear ? ' &middot; ' + escapeHtml(p.schoolYear) : ''}</span>
+                </td>
+                <td>${p.team ? teamSwatch(p.team) + ' ' + escapeHtml(p.team.name) : '&mdash;'}</td>
+                <td class="key-stat">${p.overall}</td>
+                <td>${keyStatsLine(p.stats)}</td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadNotablePlayers(teamIndex) {
+        const loginPrompt = document.getElementById('notablePlayersLoginPrompt');
+        const content = document.getElementById('notablePlayersContent');
+        if (!loginPrompt || !content) return;
+
+        try {
+            const qs = teamIndex != null ? `?team=${teamIndex}` : '';
+            const [playersRes, schoolsRes] = await Promise.all([
+                fetch('/api/records/notable-players' + qs),
+                fetch('/api/records/notable-players-schools')
+            ]);
+            if (playersRes.status === 401) {
+                loginPrompt.classList.remove('hidden');
+                content.classList.add('hidden');
+                return;
+            }
+            if (!playersRes.ok) throw new Error('Failed to load best players (HTTP ' + playersRes.status + ')');
+            loginPrompt.classList.add('hidden');
+            content.classList.remove('hidden');
+
+            if (schoolsRes.ok) populateNotablePlayersSchoolSelect(await schoolsRes.json(), teamIndex);
+            notablePlayers = await playersRes.json();
+            populateNotablePlayersPositionSelect(notablePlayers);
+            renderNotablePlayers();
+        } catch (err) {
+            console.error(err);
+            const body = document.getElementById('notablePlayersBody');
+            if (body) body.innerHTML = `<tr><td colspan="5" class="empty-row">${escapeHtml(err.message)}</td></tr>`;
+        }
+    }
+
+    const notablePlayersSchoolSelect = document.getElementById('notablePlayersSchoolSelect');
+    if (notablePlayersSchoolSelect) {
+        notablePlayersSchoolSelect.addEventListener('change', () => {
+            const val = notablePlayersSchoolSelect.value;
+            loadNotablePlayers(val === '' ? null : Number(val));
+        });
+    }
+    const notablePlayersPositionSelect = document.getElementById('notablePlayersPositionSelect');
+    if (notablePlayersPositionSelect) {
+        notablePlayersPositionSelect.addEventListener('change', () => renderNotablePlayers());
+    }
+
     // ---- Top 25 Poll (National Landscape) ----
     // Same login gate/pattern as Coaching Career - a week-by-week history
     // accumulated across uploads needs a durable identity. top25Available is
@@ -2455,5 +2749,403 @@
     }
     if (top25CurrentBtn) {
         top25CurrentBtn.addEventListener('click', () => loadTop25());
+    }
+
+    // ---- Conference Standings (National Landscape) ----
+    // Reuses the exact same snapshot/year/week list as Top 25 (GET
+    // /api/top25/available covers both - see server.js) - the only new
+    // moving part here is the conference dropdown. Offense/Defense are
+    // recomputed server-side relative to just the selected conference, so
+    // #1 offense here means best in that conference, not nationally.
+    let confStandingsAvailable = [];
+    let confStandingsSortKey = 'confRank';
+    let confStandingsCurrentRows = [];
+
+    function populateConfStandingsYearSelect(selectedYear) {
+        const sel = document.getElementById('confStandingsYearSelect');
+        if (!sel) return;
+        const years = [...new Set(confStandingsAvailable.map(a => a.seasonYear))].sort((a, b) => b - a);
+        sel.innerHTML = years.map(y => `<option value="${y}">${toCalendarYear(y)}</option>`).join('');
+        if (selectedYear != null && years.includes(selectedYear)) sel.value = String(selectedYear);
+    }
+
+    function populateConfStandingsWeekSelect(year, selectedWeek) {
+        const sel = document.getElementById('confStandingsWeekSelect');
+        if (!sel) return;
+        const weeks = confStandingsAvailable.filter(a => a.seasonYear === year).sort((a, b) => b.seasonWeek - a.seasonWeek);
+        sel.innerHTML = weeks.map(w => `<option value="${w.seasonWeek}">${top25WeekLabel(w.seasonWeek, w.seasonStage)}</option>`).join('');
+        if (selectedWeek != null && weeks.some(w => w.seasonWeek === selectedWeek)) sel.value = String(selectedWeek);
+    }
+
+    function populateConfStandingsConferenceSelect(conferences, selected) {
+        const sel = document.getElementById('confStandingsConferenceSelect');
+        if (!sel) return;
+        sel.innerHTML = (conferences || []).map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join('');
+        if (selected && (conferences || []).includes(selected)) sel.value = selected;
+    }
+
+    function renderConfStandingsTable(rows) {
+        confStandingsCurrentRows = rows || [];
+        const body = document.getElementById('confStandingsBody');
+        if (!body) return;
+        if (!confStandingsCurrentRows.length) {
+            body.innerHTML = '<tr><td colspan="7" class="empty-row">No conference standings for this week yet.</td></tr>';
+            return;
+        }
+
+        // A historical season (predating this feature) has no retained
+        // conference-record history - confRank is meaningless there, so
+        // fall back to Offense same as Top 25 does for its own poll columns.
+        let key = confStandingsSortKey;
+        if (!confStandingsCurrentRows.some(r => r[key] != null)) key = 'offenseRank';
+
+        const sorted = [...confStandingsCurrentRows]
+            .filter(r => r[key] != null)
+            .sort((a, b) => a[key] - b[key]);
+
+        body.innerHTML = sorted.map(r => `
+            <tr>
+                <td class="rank-cell">${top25PollLabel(r.compositeRank != null && r.compositeRank <= 25 ? r.compositeRank : null)}</td>
+                <td class="rank-cell">#${r.confRank}</td>
+                <td>${schoolBadge(r)}</td>
+                <td class="record-cell">${formatRecord(r.wins, r.losses, r.ties)}</td>
+                <td class="record-cell">${r.confWins != null ? formatRecord(r.confWins, r.confLosses, r.confTies) : '&mdash;'}</td>
+                <td class="key-stat${key === 'offenseRank' ? ' top25-sorted-col' : ''}">#${r.offenseRank}${r.isProjected ? ' <span class="record-detail">(proj.)</span>' : ''}</td>
+                <td class="key-stat${key === 'defenseRank' ? ' top25-sorted-col' : ''}">#${r.defenseRank}${r.isProjected ? ' <span class="record-detail">(proj.)</span>' : ''}</td>
+            </tr>
+        `).join('');
+
+        document.querySelectorAll('#confStandingsTable th.sortable-col').forEach(th => {
+            th.classList.toggle('active-sort', th.dataset.sortKey === key);
+        });
+    }
+
+    document.querySelectorAll('#confStandingsTable th.sortable-col').forEach(th => {
+        th.addEventListener('click', () => {
+            confStandingsSortKey = th.dataset.sortKey;
+            renderConfStandingsTable(confStandingsCurrentRows);
+        });
+    });
+
+    // Omit year/week for the current in-progress-season snapshot; omit
+    // conference to let the server pick a default (alphabetically first) -
+    // the response's own `conference` field is what actually gets selected.
+    async function loadConfStandings(year, week, conference) {
+        const loginPrompt = document.getElementById('confStandingsLoginPrompt');
+        const content = document.getElementById('confStandingsContent');
+        if (!loginPrompt || !content) return;
+
+        try {
+            const params = new URLSearchParams();
+            if (year != null && week != null) { params.set('year', year); params.set('week', week); }
+            if (conference) params.set('conference', conference);
+            const qs = params.toString() ? '?' + params.toString() : '';
+
+            const [standingsRes, availableRes] = await Promise.all([
+                fetch('/api/conference-standings' + qs),
+                fetch('/api/top25/available')
+            ]);
+            if (standingsRes.status === 401) {
+                loginPrompt.classList.remove('hidden');
+                content.classList.add('hidden');
+                return;
+            }
+            if (!standingsRes.ok) throw new Error('Failed to load conference standings (HTTP ' + standingsRes.status + ')');
+            loginPrompt.classList.add('hidden');
+            content.classList.remove('hidden');
+
+            if (availableRes.ok) confStandingsAvailable = await availableRes.json();
+            const data = await standingsRes.json();
+
+            if (data.seasonYear == null) {
+                renderConfStandingsTable([]);
+                return;
+            }
+            populateConfStandingsYearSelect(data.seasonYear);
+            populateConfStandingsWeekSelect(data.seasonYear, data.seasonWeek);
+            populateConfStandingsConferenceSelect(data.conferences, data.conference);
+            renderConfStandingsTable(data.rows);
+        } catch (err) {
+            console.error(err);
+            const body = document.getElementById('confStandingsBody');
+            if (body) body.innerHTML = `<tr><td colspan="7" class="empty-row">${escapeHtml(err.message)}</td></tr>`;
+        }
+    }
+
+    const confStandingsYearSelect = document.getElementById('confStandingsYearSelect');
+    const confStandingsWeekSelect = document.getElementById('confStandingsWeekSelect');
+    const confStandingsConferenceSelect = document.getElementById('confStandingsConferenceSelect');
+    const confStandingsCurrentBtn = document.getElementById('confStandingsCurrentBtn');
+    const confStandingsMyConferenceBtn = document.getElementById('confStandingsMyConferenceBtn');
+
+    if (confStandingsYearSelect) {
+        confStandingsYearSelect.addEventListener('change', () => {
+            const year = Number(confStandingsYearSelect.value);
+            populateConfStandingsWeekSelect(year, null);
+            const conf = confStandingsConferenceSelect ? confStandingsConferenceSelect.value : null;
+            if (confStandingsWeekSelect && confStandingsWeekSelect.value !== '') {
+                loadConfStandings(year, Number(confStandingsWeekSelect.value), conf);
+            }
+        });
+    }
+    if (confStandingsWeekSelect) {
+        confStandingsWeekSelect.addEventListener('change', () => {
+            const conf = confStandingsConferenceSelect ? confStandingsConferenceSelect.value : null;
+            if (confStandingsYearSelect && confStandingsWeekSelect.value !== '') {
+                loadConfStandings(Number(confStandingsYearSelect.value), Number(confStandingsWeekSelect.value), conf);
+            }
+        });
+    }
+    if (confStandingsConferenceSelect) {
+        confStandingsConferenceSelect.addEventListener('change', () => {
+            const year = confStandingsYearSelect && confStandingsYearSelect.value !== '' ? Number(confStandingsYearSelect.value) : null;
+            const week = confStandingsWeekSelect && confStandingsWeekSelect.value !== '' ? Number(confStandingsWeekSelect.value) : null;
+            loadConfStandings(year, week, confStandingsConferenceSelect.value);
+        });
+    }
+    if (confStandingsCurrentBtn) {
+        confStandingsCurrentBtn.addEventListener('click', () => loadConfStandings());
+    }
+    if (confStandingsMyConferenceBtn) {
+        // top25CurrentRows (every real team, already loaded by loadTop25) is
+        // the cheapest way to find the user's own team's conference, without
+        // a dedicated backend lookup - conference membership is stable
+        // across a snapshot's week anyway.
+        confStandingsMyConferenceBtn.addEventListener('click', () => {
+            if (!userTeamContext) return;
+            const match = top25CurrentRows.find(r => r.name === userTeamContext.name);
+            loadConfStandings(null, null, match ? match.conference : null);
+        });
+    }
+
+    // ---- Awards (National Landscape) ----
+    // Three independent views sharing one login-gate wrapper (awardsContent/
+    // awardsLoginPrompt) - Heisman is the only award with a real in-season
+    // leaderboard, so it gets its own year/week search like Top 25; the
+    // other 23 awards only ever have a final winner, browsable by year;
+    // school totals is a career-wide aggregate with no time dimension.
+    let heismanAvailable = [];
+
+    function heismanWeekLabel(week, stage) {
+        return `Week ${week}` + (stage ? ` (${stage})` : '');
+    }
+
+    function populateHeismanYearSelect(selectedYear) {
+        const sel = document.getElementById('heismanYearSelect');
+        if (!sel) return;
+        const years = [...new Set(heismanAvailable.map(a => a.seasonYear))].sort((a, b) => b - a);
+        sel.innerHTML = years.map(y => `<option value="${y}">${toCalendarYear(y)}</option>`).join('');
+        if (selectedYear != null && years.includes(selectedYear)) sel.value = String(selectedYear);
+    }
+
+    function populateHeismanWeekSelect(year, selectedWeek) {
+        const sel = document.getElementById('heismanWeekSelect');
+        if (!sel) return;
+        const weeks = heismanAvailable.filter(a => a.seasonYear === year).sort((a, b) => b.seasonWeek - a.seasonWeek);
+        sel.innerHTML = weeks.map(w => `<option value="${w.seasonWeek}">${heismanWeekLabel(w.seasonWeek, w.seasonStage)}</option>`).join('');
+        if (selectedWeek != null && weeks.some(w => w.seasonWeek === selectedWeek)) sel.value = String(selectedWeek);
+    }
+
+    function renderHeismanTable(candidates) {
+        const body = document.getElementById('heismanBody');
+        if (!body) return;
+        if (!candidates.length) {
+            body.innerHTML = '<tr><td colspan="3" class="empty-row">No Heisman race data for this week yet.</td></tr>';
+            return;
+        }
+        body.innerHTML = candidates.map(c => `
+            <tr>
+                <td class="rank-cell">#${c.rank}</td>
+                <td><span class="pd-name">${escapeHtml(c.name)}</span> <span class="record-detail">${escapeHtml(c.position || '')}</span></td>
+                <td>${c.team ? teamSwatch(c.team) + ' ' + escapeHtml(c.team.name) : '&mdash;'}</td>
+            </tr>
+        `).join('');
+    }
+
+    // Login-gate check lives here since this is the first fetch made on
+    // every load of the Awards sub-tab - loadAwardsByYear/loadAwardsSchools
+    // are called right alongside it (see loadAwards below) and simply won't
+    // be visible if this hides awardsContent.
+    async function loadHeismanRace(year, week) {
+        const loginPrompt = document.getElementById('awardsLoginPrompt');
+        const content = document.getElementById('awardsContent');
+        if (!loginPrompt || !content) return;
+
+        try {
+            const qs = (year != null && week != null) ? `?year=${year}&week=${week}` : '';
+            const [raceRes, availableRes] = await Promise.all([
+                fetch('/api/awards/heisman' + qs),
+                fetch('/api/awards/heisman/available')
+            ]);
+            if (raceRes.status === 401) {
+                loginPrompt.classList.remove('hidden');
+                content.classList.add('hidden');
+                return;
+            }
+            if (!raceRes.ok) throw new Error('Failed to load Heisman race (HTTP ' + raceRes.status + ')');
+            loginPrompt.classList.add('hidden');
+            content.classList.remove('hidden');
+
+            if (availableRes.ok) heismanAvailable = await availableRes.json();
+            const snapshot = await raceRes.json();
+            if (snapshot.seasonYear == null) { renderHeismanTable([]); return; }
+            populateHeismanYearSelect(snapshot.seasonYear);
+            populateHeismanWeekSelect(snapshot.seasonYear, snapshot.seasonWeek);
+            renderHeismanTable(snapshot.candidates);
+        } catch (err) {
+            console.error(err);
+            const body = document.getElementById('heismanBody');
+            if (body) body.innerHTML = `<tr><td colspan="3" class="empty-row">${escapeHtml(err.message)}</td></tr>`;
+        }
+    }
+
+    const heismanYearSelect = document.getElementById('heismanYearSelect');
+    const heismanWeekSelect = document.getElementById('heismanWeekSelect');
+    const heismanCurrentBtn = document.getElementById('heismanCurrentBtn');
+    if (heismanYearSelect) {
+        heismanYearSelect.addEventListener('change', () => {
+            const year = Number(heismanYearSelect.value);
+            populateHeismanWeekSelect(year, null);
+            if (heismanWeekSelect && heismanWeekSelect.value !== '') {
+                loadHeismanRace(year, Number(heismanWeekSelect.value));
+            }
+        });
+    }
+    if (heismanWeekSelect) {
+        heismanWeekSelect.addEventListener('change', () => {
+            if (heismanYearSelect && heismanWeekSelect.value !== '') {
+                loadHeismanRace(Number(heismanYearSelect.value), Number(heismanWeekSelect.value));
+            }
+        });
+    }
+    if (heismanCurrentBtn) {
+        heismanCurrentBtn.addEventListener('click', () => loadHeismanRace());
+    }
+
+    // ---- Awards by Year ----
+    let awardsAvailableYears = [];
+
+    function populateAwardsYearSelect(selectedYear) {
+        const sel = document.getElementById('awardsYearSelect');
+        if (!sel) return;
+        sel.innerHTML = awardsAvailableYears.map(y => `<option value="${y}">${toCalendarYear(y)}</option>`).join('');
+        if (selectedYear != null && awardsAvailableYears.includes(selectedYear)) sel.value = String(selectedYear);
+    }
+
+    function renderAwardsByYear(rows) {
+        const body = document.getElementById('awardsByYearBody');
+        if (!body) return;
+        if (!rows.length) {
+            body.innerHTML = '<tr><td colspan="4" class="empty-row">No award data for this year yet.</td></tr>';
+            return;
+        }
+        body.innerHTML = rows.map(r => `
+            <tr>
+                <td>${escapeHtml(r.awardLabel)}</td>
+                <td>${r.name ? escapeHtml(r.name) : '&mdash;'}</td>
+                <td>${r.position ? escapeHtml(r.position) : '&mdash;'}</td>
+                <td>${r.team ? teamSwatch(r.team) + ' ' + escapeHtml(r.team.name) : '&mdash;'}</td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadAwardsByYear(year) {
+        try {
+            const yearsRes = await fetch('/api/awards/available-years');
+            if (yearsRes.ok) awardsAvailableYears = await yearsRes.json();
+            const targetYear = year != null ? year : (awardsAvailableYears.length ? awardsAvailableYears[0] : null);
+            populateAwardsYearSelect(targetYear);
+
+            if (targetYear == null) { renderAwardsByYear([]); return; }
+            const rowsRes = await fetch('/api/awards/history?year=' + targetYear);
+            renderAwardsByYear(rowsRes.ok ? await rowsRes.json() : []);
+        } catch (err) {
+            console.error(err);
+            const body = document.getElementById('awardsByYearBody');
+            if (body) body.innerHTML = `<tr><td colspan="4" class="empty-row">${escapeHtml(err.message)}</td></tr>`;
+        }
+    }
+
+    const awardsYearSelect = document.getElementById('awardsYearSelect');
+    if (awardsYearSelect) {
+        awardsYearSelect.addEventListener('change', () => loadAwardsByYear(Number(awardsYearSelect.value)));
+    }
+
+    // ---- School Award Totals ----
+    function schoolAwardBreakdownCards(breakdown) {
+        if (!breakdown.length) return '<div class="player-detail-empty">No awards recorded.</div>';
+        return breakdown.map(b => `
+            <div class="player-detail-card">
+                <div class="pd-header"><span class="pd-name">${escapeHtml(b.awardLabel)}</span></div>
+                <div class="pd-meta">${b.count}&times; won</div>
+            </div>
+        `).join('');
+    }
+
+    let allAwardsSchoolsData = [];
+
+    function renderAwardsSchools(schools) {
+        const body = document.getElementById('awardsSchoolsBody');
+        if (!body) return;
+        if (!schools.length) {
+            body.innerHTML = '<tr><td colspan="3" class="empty-row">No school award data yet.</td></tr>';
+            return;
+        }
+        body.innerHTML = schools.map((s, i) => `
+            <tr class="team-row clickable-row" data-idx="${i}" data-colspan="3">
+                <td class="rank-cell">#${i + 1}</td>
+                <td>${s.team ? teamSwatch(s.team) + ' ' + escapeHtml(s.team.name) : '&mdash;'}</td>
+                <td class="key-stat">${s.totalWins}</td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadAwardsSchools() {
+        try {
+            const res = await fetch('/api/awards/schools');
+            allAwardsSchoolsData = res.ok ? await res.json() : [];
+            renderAwardsSchools(allAwardsSchoolsData);
+        } catch (err) {
+            console.error(err);
+            const body = document.getElementById('awardsSchoolsBody');
+            if (body) body.innerHTML = `<tr><td colspan="3" class="empty-row">${escapeHtml(err.message)}</td></tr>`;
+        }
+    }
+
+    const awardsSchoolsBody = document.getElementById('awardsSchoolsBody');
+    if (awardsSchoolsBody) {
+        awardsSchoolsBody.addEventListener('click', e => {
+            const row = e.target.closest('.team-row');
+            if (!row) return;
+
+            const next = row.nextElementSibling;
+            if (next && next.classList.contains('detail-row')) {
+                next.remove();
+                row.classList.remove('expanded');
+                return;
+            }
+            document.querySelectorAll('#awardsSchoolsBody .detail-row').forEach(el => el.remove());
+            document.querySelectorAll('#awardsSchoolsBody .team-row').forEach(el => el.classList.remove('expanded'));
+
+            const school = allAwardsSchoolsData[Number(row.dataset.idx)];
+            const detailHtml = `
+                <tr class="detail-row">
+                    <td colspan="${row.dataset.colspan}">
+                        <div class="player-detail-panel">${schoolAwardBreakdownCards(school ? school.breakdown : [])}</div>
+                    </td>
+                </tr>
+            `;
+            row.insertAdjacentHTML('afterend', detailHtml);
+            row.classList.add('expanded');
+        });
+    }
+
+    // Combined loader for the whole Awards sub-tab - called from the same
+    // trigger points as loadTop25/loadConfStandings (upload/refresh success,
+    // first National Landscape tab click).
+    async function loadAwards() {
+        await loadHeismanRace();
+        await loadAwardsByYear();
+        await loadAwardsSchools();
     }
 })();

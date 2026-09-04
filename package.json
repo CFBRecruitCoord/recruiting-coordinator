@@ -1,7 +1,7 @@
 {
   "name": "recruiting-coordinator",
   "version": "1.0.0",
-  "description": "Recruiting Coordinator - a standalone CFB 27 dynasty save recruit explorer, spun out from Dynasty Tracker so it can evolve independently.",
+  "description": "Dynasty Coordinator - a CFB 27 dynasty companion: a recruiting board built from your own roster, national rankings and awards the game won't remember, and a permanent record of your program's history.",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

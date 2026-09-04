@@ -23,8 +23,16 @@ const { parseTeamsMeta, parseBowlsMeta, parseMyTeamGames } = require('./lib/pars
 const { ingestDynastyRecords, LOCAL_DYNASTY_USER_ID } = require('./lib/dynastyIngest');
 const { getSchoolRecords, getBowlRecord, getPlayoffRecord, getBowlRecordsByName } = require('./lib/schoolRecordQueries');
 const { parseNationalTeamStats } = require('./lib/parseNationalTeamStats');
-const { computeTop25 } = require('./lib/top25');
+const { computeTop25, computeConferenceStandings } = require('./lib/top25');
 const { ingestTop25Snapshot, getTop25Snapshot, getLatestTop25Snapshot, getAvailableTop25Snapshots } = require('./lib/top25Ingest');
+const { ingestRecruitingClass, getRecruitingClasses, getRecruitingCareerSummary, getRecruitingSchools } = require('./lib/recruitingClassIngest');
+const { parseNotablePlayers } = require('./lib/parseNotablePlayers');
+const { ingestNotablePlayers, getNotablePlayers, getNotablePlayerSchools } = require('./lib/notablePlayersIngest');
+const { parseAwards } = require('./lib/parseAwards');
+const {
+    ingestAwardsHistory, ingestHeismanRace, getAwardsHistory, getAvailableAwardYears,
+    getSchoolAwardTotals, getHeismanRace, getLatestHeismanRace, getAvailableHeismanWeeks
+} = require('./lib/awardsIngest');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -294,6 +302,59 @@ app.get('/api/records/bowls-by-name', dynastyRecordsGate, (req, res) => {
     }
 });
 
+// Same gate/pattern as the rest of Coaching Career - a recruiting class
+// history accumulated across uploads needs a durable identity too.
+app.get('/api/records/recruiting-classes', dynastyRecordsGate, (req, res) => {
+    try {
+        const team = req.query.team != null ? Number(req.query.team) : null;
+        res.json(getRecruitingClasses(req.dynastyUserId, team));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load recruiting class history.', details: err.message });
+    }
+});
+
+// Career (or single-school, via ?team=) recruiting totals - see
+// getRecruitingCareerSummary in lib/recruitingClassIngest.js.
+app.get('/api/records/recruiting-career', dynastyRecordsGate, (req, res) => {
+    try {
+        const team = req.query.team != null ? Number(req.query.team) : null;
+        res.json(getRecruitingCareerSummary(req.dynastyUserId, team));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load recruiting career summary.', details: err.message });
+    }
+});
+
+app.get('/api/records/recruiting-schools', dynastyRecordsGate, (req, res) => {
+    try {
+        res.json(getRecruitingSchools(req.dynastyUserId));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load recruiting schools.', details: err.message });
+    }
+});
+
+// ---- Best Players ----
+app.get('/api/records/notable-players', dynastyRecordsGate, (req, res) => {
+    try {
+        const team = req.query.team != null ? Number(req.query.team) : null;
+        res.json(getNotablePlayers(req.dynastyUserId, team));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load notable players.', details: err.message });
+    }
+});
+
+app.get('/api/records/notable-players-schools', dynastyRecordsGate, (req, res) => {
+    try {
+        res.json(getNotablePlayerSchools(req.dynastyUserId));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load notable player schools.', details: err.message });
+    }
+});
+
 // ---- Top 25 Poll ----
 // Same gate as Coaching Career - a snapshot table accumulated across
 // uploads needs a durable identity. Omit year/week for the most recent
@@ -320,6 +381,94 @@ app.get('/api/top25/available', dynastyRecordsGate, (req, res) => {
     }
 });
 
+// ---- Conference Standings ----
+// Reuses the exact same Top 25 snapshot (every real team, not just the top
+// 25/30 - see ingestTop25Snapshot) rather than a separate table: each stored
+// row already carries its own conference (captured at ingest time in
+// parseNationalTeamStats, since conference membership doesn't need its own
+// history - the save only exposes today's alignment anyway). Offense/Defense
+// are recomputed here relative to just the selected conference's members
+// (computeConferenceStandings), not copied from the national Top 25 numbers.
+// Same year/week search as Top 25 (GET /api/top25/available covers both).
+app.get('/api/conference-standings', dynastyRecordsGate, (req, res) => {
+    try {
+        const { year, week, conference } = req.query;
+        const snapshot = (year != null && week != null)
+            ? getTop25Snapshot(req.dynastyUserId, Number(year), Number(week))
+            : getLatestTop25Snapshot(req.dynastyUserId);
+        if (!snapshot) {
+            return res.json({ seasonYear: null, seasonWeek: null, seasonStage: null, conferences: [], conference: null, rows: [] });
+        }
+
+        const conferences = [...new Set(snapshot.rows.map(r => r.conference).filter(Boolean))].sort();
+        const selected = (conference && conferences.includes(conference)) ? conference : (conferences[0] || null);
+        const members = selected ? snapshot.rows.filter(r => r.conference === selected) : [];
+
+        res.json({
+            seasonYear: snapshot.seasonYear, seasonWeek: snapshot.seasonWeek, seasonStage: snapshot.seasonStage,
+            conferences, conference: selected, rows: computeConferenceStandings(members)
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load conference standings.', details: err.message });
+    }
+});
+
+// ---- Awards ----
+// Omit year for every year tracked; pass one to scope to that season's full
+// 24-award sweep.
+app.get('/api/awards/history', dynastyRecordsGate, (req, res) => {
+    try {
+        const year = req.query.year != null ? Number(req.query.year) : null;
+        res.json(getAwardsHistory(req.dynastyUserId, year));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load awards history.', details: err.message });
+    }
+});
+
+app.get('/api/awards/available-years', dynastyRecordsGate, (req, res) => {
+    try {
+        res.json(getAvailableAwardYears(req.dynastyUserId));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load available award years.', details: err.message });
+    }
+});
+
+app.get('/api/awards/schools', dynastyRecordsGate, (req, res) => {
+    try {
+        res.json(getSchoolAwardTotals(req.dynastyUserId));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load school award totals.', details: err.message });
+    }
+});
+
+// Current (or historical week's) Heisman race - the only award with a real
+// in-season leaderboard. Omit year/week for the most recent snapshot.
+app.get('/api/awards/heisman', dynastyRecordsGate, (req, res) => {
+    try {
+        const { year, week } = req.query;
+        const snapshot = (year != null && week != null)
+            ? getHeismanRace(req.dynastyUserId, Number(year), Number(week))
+            : getLatestHeismanRace(req.dynastyUserId);
+        res.json(snapshot || { seasonYear: null, seasonWeek: null, seasonStage: null, candidates: [] });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load Heisman race.', details: err.message });
+    }
+});
+
+app.get('/api/awards/heisman/available', dynastyRecordsGate, (req, res) => {
+    try {
+        res.json(getAvailableHeismanWeeks(req.dynastyUserId));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load available Heisman weeks.', details: err.message });
+    }
+});
+
 // Blocks an anonymous visitor's 4th+ upload attempt, before multer even
 // reads the file off the wire - logged-in users (req.user set by apiGate,
 // which runs first) are exempt entirely. Mounted ahead of upload.single()
@@ -333,7 +482,7 @@ function checkUploadLimit(req, res, next) {
     if (used >= FREE_UPLOAD_LIMIT) {
         return res.status(403).json({
             error: 'account_required',
-            message: `You've used your ${FREE_UPLOAD_LIMIT} uploads without an account. Create an account (or log in) to keep using Recruiting Coordinator.`,
+            message: `You've used your ${FREE_UPLOAD_LIMIT} uploads without an account. Create an account (or log in) to keep using Dynasty Coordinator.`,
             freeUploadLimit: FREE_UPLOAD_LIMIT
         });
     }
@@ -388,6 +537,60 @@ async function ingestTop25BestEffort(franchise, dynastyUserId) {
     }
 }
 
+// Separate best-effort step, same pattern as the two above. Reuses the
+// roster/userTeam already parsed for the main upload response instead of
+// re-reading the save - see dynasty_recruiting_classes in lib/authDb.js for
+// why "this year's Freshmen on my roster" is the recruiting class.
+async function ingestRecruitingClassBestEffort(franchise, userTeam, roster, dynastyUserId) {
+    if (dynastyUserId == null || !userTeam) return;
+    try {
+        const seasonInfoTable = franchise.tables.filter(t => t.name === 'SeasonInfo')[0];
+        await seasonInfoTable.readRecords();
+        const seasonInfo = seasonInfoTable.records.find(r => !r.isEmpty);
+
+        const signees = roster
+            .filter(p => p.teamIndex === userTeam.teamIndex && p.schoolYear === 'Freshman')
+            .map(p => ({ name: p.name, position: p.position, stars: p.starsNum, overall: p.overall, homeState: p.homeState }));
+
+        ingestRecruitingClass(dynastyUserId, { classYear: seasonInfo.CurrentYear, teamIndex: userTeam.teamIndex, signees });
+    } catch (err) {
+        console.error('Recruiting class ingest failed (continuing without it):', err);
+    }
+}
+
+// Separate best-effort step, same pattern as the others. Re-reads the
+// Player table scoped to just the user's team (parseNotablePlayers) rather
+// than reusing the national roster array, since it also needs each
+// starter's CareerStats reference resolved - not something the national
+// roster parse carries (it would be wasted work for the ~11,600 players on
+// other teams that this feature never looks at).
+async function ingestNotablePlayersBestEffort(franchise, userTeam, dynastyUserId) {
+    if (dynastyUserId == null || !userTeam) return;
+    try {
+        const players = await parseNotablePlayers(franchise, userTeam.teamIndex);
+        ingestNotablePlayers(dynastyUserId, userTeam.teamIndex, players);
+    } catch (err) {
+        console.error('Notable players ingest failed (continuing without it):', err);
+    }
+}
+
+// Separate best-effort step, same pattern as the others. National in scope
+// (every school's award winners, not just the user's own team) since awards
+// are inherently a national/league-wide thing, same as Top 25.
+async function ingestAwardsBestEffort(franchise, dynastyUserId) {
+    if (dynastyUserId == null) return;
+    try {
+        const awards = await parseAwards(franchise);
+        ingestAwardsHistory(dynastyUserId, awards.historicalWinners);
+        ingestHeismanRace(dynastyUserId, {
+            seasonYear: awards.seasonYear, seasonWeek: awards.seasonWeek,
+            seasonStage: awards.seasonStage, candidates: awards.heismanRace
+        });
+    } catch (err) {
+        console.error('Awards ingest failed (continuing without it):', err);
+    }
+}
+
 app.post('/api/upload', apiGate, checkUploadLimit, upload.single('saveFile'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded.' });
@@ -403,6 +606,9 @@ app.post('/api/upload', apiGate, checkUploadLimit, upload.single('saveFile'), as
         const userTeam = await parseUserTeamContext(franchise);
         await ingestDynastyRecordsBestEffort(franchise, userTeam, resolveDynastyUserId(req));
         await ingestTop25BestEffort(franchise, resolveDynastyUserId(req));
+        await ingestRecruitingClassBestEffort(franchise, userTeam, roster, resolveDynastyUserId(req));
+        await ingestNotablePlayersBestEffort(franchise, userTeam, resolveDynastyUserId(req));
+        await ingestAwardsBestEffort(franchise, resolveDynastyUserId(req));
         // Most uploaders won't be logged in now that it's optional - fall
         // back to the anonymous visitor cookie (same one the unique-visitor
         // counter uses) so the admin usage dashboard doesn't go dark.
@@ -476,6 +682,9 @@ app.post('/api/refresh', localPathGate, async (req, res) => {
         const userTeam = await parseUserTeamContext(franchise);
         await ingestDynastyRecordsBestEffort(franchise, userTeam, resolveDynastyUserId(req));
         await ingestTop25BestEffort(franchise, resolveDynastyUserId(req));
+        await ingestRecruitingClassBestEffort(franchise, userTeam, roster, resolveDynastyUserId(req));
+        await ingestNotablePlayersBestEffort(franchise, userTeam, resolveDynastyUserId(req));
+        await ingestAwardsBestEffort(franchise, resolveDynastyUserId(req));
         res.json({ count: recruits.length, recruits, rosterCount: roster.length, roster, userTeam });
     } catch (err) {
         console.error(err);
@@ -552,7 +761,7 @@ if (MULTI_TENANT_MODE) {
 }
 
 app.listen(PORT, () => {
-    console.log(`Recruiting Coordinator running on port ${PORT}`);
+    console.log(`Dynasty Coordinator running on port ${PORT}`);
     console.log(`Mode: ${MULTI_TENANT_MODE ? 'HOSTED (login optional, usage stats tracked)' : 'PERSONAL (no login, local-path refresh enabled)'}`);
     console.log(`Raw MULTI_TENANT_MODE env value: ${JSON.stringify(process.env.MULTI_TENANT_MODE)}`);
     if (MULTI_TENANT_MODE) {

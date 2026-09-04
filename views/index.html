@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Recruiting Coordinator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dynasty Coordinator</title>
+<meta name="description" content="CFB 27 only shows you right now. Dynasty Coordinator uploads your dynasty save and builds a recruiting board around your actual roster, tracks national rankings and awards the game won't remember, and keeps a permanent record of every class, season, and player long after the save forgets them.">
+<meta property="og:title" content="Dynasty Coordinator">
+<meta property="og:description" content="The dynasty companion CFB 27 doesn't give you - a recruiting board built from your real roster, national rankings and awards races, and a permanent record of your program's entire history.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,34 +27,34 @@
             </div>
             <a href="/feedback.html" class="link-btn">💬 Leave Comment / Report Bug</a>
         </div>
-        <h1>🏈 Recruiting Coordinator</h1>
-        <p class="subtitle">Upload a CFB 27 dynasty save to explore its recruiting class. Spun out from Dynasty Tracker so this tool can be iterated on independently.</p>
+        <h1>🏈 Dynasty Coordinator</h1>
+        <p class="subtitle">The dynasty companion CFB 27 doesn't give you &mdash; a recruiting board built from your actual roster, national rankings and awards the game won't remember, and a permanent record of your program's entire history.</p>
     </header>
 
     <section id="landingHero" class="landing-hero">
         <div class="landing-hero-field">
             <div class="landing-hero-yardline"></div>
-            <h2 class="landing-hero-title">Your Dynasty's Recruiting Class, Actually Explained</h2>
-            <p class="landing-hero-tagline">Upload your CFB 27 dynasty save and get a real recruiting board built from your own roster, needs, and NIL budget &mdash; not just a generic top-recruits list.</p>
+            <h2 class="landing-hero-title">Your Whole Dynasty, Actually Remembered</h2>
+            <p class="landing-hero-tagline">CFB 27 only shows you right now. Dynasty Coordinator uploads your save and builds a recruiting board around your actual team, tracks national rankings and awards races, and keeps a permanent record of every class, season, and player long after the game forgets them.</p>
         </div>
         <div class="landing-steps">
             <div class="landing-step">
                 <div class="landing-step-icon">📤</div>
                 <div class="landing-step-num">1</div>
                 <div class="landing-step-title">Upload your save</div>
-                <div class="landing-step-desc">Drag in your dynasty save file below. It's read once to pull your recruiting class and rosters &mdash; nothing about your save is stored.</div>
+                <div class="landing-step-desc">Drag in your dynasty save file below. It's read once to pull your recruiting class, rosters, and program history &mdash; nothing about your save is stored.</div>
             </div>
             <div class="landing-step">
                 <div class="landing-step-icon">📊</div>
                 <div class="landing-step-num">2</div>
                 <div class="landing-step-title">We break it down</div>
-                <div class="landing-step-desc">Every recruit gets rated against their peers, your roster gets compared to the national landscape, and your program's needs get scored position by position.</div>
+                <div class="landing-step-desc">Every recruit gets rated against their peers, your roster gets measured against the national landscape, and your program's rankings, awards, and records get logged.</div>
             </div>
             <div class="landing-step">
                 <div class="landing-step-icon">🎯</div>
                 <div class="landing-step-num">3</div>
-                <div class="landing-step-title">Get your board</div>
-                <div class="landing-step-desc">A personalized target list built from your actual situation, tunable to how you want to build &mdash; rebuilding, maintaining, or competing now.</div>
+                <div class="landing-step-title">Build your legacy</div>
+                <div class="landing-step-desc">A personalized recruiting board tuned to how you want to build, plus a permanent record of your program's classes, records, and legends that grows every time you play.</div>
             </div>
         </div>
     </section>
@@ -95,7 +99,7 @@
     </section>
 
     <nav class="top-tabs">
-        <button class="tab-btn active" data-tab="dynastyRecruitingTab">Dynasty Recruiting</button>
+        <button class="tab-btn active" data-tab="dynastyRecruitingTab">Recruiting Coordinator</button>
         <button class="tab-btn" data-tab="nationalTab">National Landscape</button>
         <button class="tab-btn" data-tab="coachingCareerTab">Coaching Career</button>
         <button class="tab-btn hidden" data-tab="adminTab" id="adminTabBtn">Admin</button>
@@ -373,41 +377,15 @@
     </div>
 
     <div id="nationalTab" class="tab-panel">
-        <section class="averages-panel">
-            <p class="leaderboard-hint">Every currently-rostered player nationwide (not recruits), grouped by team caliber and class year. Team tier is the save's own 0-10 Team Prestige bucketed into 4 tiers, mirroring recruit star tiers. "Starter" means the highest-Overall player(s) at that exact position on their roster (the save's own depth chart data didn't resolve reliably, so this is a realistic-slot-count proxy instead).</p>
+        <div class="sub-tabs">
+            <button class="sub-tab-btn active" data-subtab="top25SubTab">🏈 Top 25</button>
+            <button class="sub-tab-btn" data-subtab="conferenceStandingsSubTab">🏟️ Conference Standings</button>
+            <button class="sub-tab-btn" data-subtab="awardsSubTab">🏅 Awards</button>
+            <button class="sub-tab-btn" data-subtab="powerRankingsSubTab">🏆 National Power Rankings</button>
+        </div>
 
-            <details class="info-box">
-                <summary>How this works &amp; why it matters</summary>
-                <div class="info-box-body">
-                    <h4>What this page shows</h4>
-                    <p>Everyone currently <strong>on a roster</strong> nationwide &mdash; not recruits. This is where you go to answer "how good does a team actually need to be at a position to compete at a given level," which the Class Landscape sub-tab (under Dynasty Recruiting) can't tell you since it's only looking at incoming prospects.</p>
-
-                    <h4>Team Tier</h4>
-                    <p>Every team gets bucketed into one of 4 tiers based on the save's own 0-10 Team Prestige rating: <strong>Championship Caliber</strong> (7-10), <strong>Contending</strong> (5-6), <strong>Competing</strong> (3-4), <strong>Rebuilding</strong> (0-2). These cutoffs aren't arbitrary &mdash; they split all 138 real teams into four roughly even groups, so each tier represents a genuine quarter of the national landscape, not a skewed bucket.</p>
-
-                    <h4>"Starter"</h4>
-                    <p>The save's own depth chart data didn't resolve to sensible players when checked, so instead a player is counted as a starter if they're the top-Overall player(s) at their exact position on their team, using realistic slot counts (1 for QB, 3 for WR, 2 for CB, etc.). Anywhere you see "starters weighted 3&times;," this is the definition being used.</p>
-
-                    <h4>🏆 National Power Rankings</h4>
-                    <p>The single best Offense, Defense, and Overall roster nationwide. <strong>Offense</strong> blends the QB/RB/WR/TE/Offensive Line position-group scores together; <strong>Defense</strong> blends DL/LB/DB; <strong>Overall</strong> blends all ten groups. Click any team card to see its top 3 players at that exact set of positions.</p>
-
-                    <h4>Top 5 Teams, by Position Group</h4>
-                    <p>Same idea, narrowed to one position group at a time. A team's group score averages its starter-weighted Overall at every individual position in the group separately (e.g. Offensive Line = the average of Left Tackle, Left Guard, Center, Right Guard, and Right Tackle averages) rather than just pooling every lineman together &mdash; that keeps a team with 12 mediocre backup guards from outscoring a team with 5 genuinely great starters. A team missing a position entirely (no Fullback, say) is simply left out of that one average instead of being penalized for it.</p>
-
-                    <h4>Tier &times; Class Matrix</h4>
-                    <p>Pick a position and see its average Overall across every combination of team caliber and class year at once. This is the best view for spotting <strong>development curves</strong> &mdash; e.g. confirming that a Contending team's Junior WRs really do outgrade a Rebuilding team's Junior WRs, or seeing how much runway a true freshman typically needs before they're producing at a Championship-Caliber level.</p>
-
-                    <h4>All Positions, by Class</h4>
-                    <p>The exhaustive reference table &mdash; every position broken out by class year, filterable by position and team tier. Key Rating columns show whichever 1-3 ratings matter most for that specific position (e.g. Throw Power/Accuracy for QB, Man Coverage for CB), pulled from the players' real, position-specific ratings rather than generic athletic testing numbers.</p>
-
-                    <h4>Why it matters</h4>
-                    <p>This tab is your benchmark for "what does good actually look like." Whether you're deciding if your own roster is competitive at a position, figuring out how many years a recruit needs to develop into a starter, or just want to know which programs are stacked where &mdash; this is where those national baselines live. It pairs directly with the Recruit Targets tab: the position-need scoring there is built by comparing your roster against these same national averages.</p>
-                </div>
-            </details>
-        </section>
-
+        <div id="top25SubTab" class="sub-tab-panel active">
         <section class="records-panel top25-panel">
-            <h1 class="power-rankings-title">🏈 Top 25</h1>
             <p class="leaderboard-hint">The save's own Media, Coaches, and CFP polls for the week, side by side with <strong>The Coordinator 25</strong> &mdash; our own blend of those polls into one consensus ranking. Offensive and Defensive Rank are the only genuinely calculated columns here. Click any ranking's column header to sort the table by it.</p>
 
             <details class="info-box">
@@ -466,6 +444,177 @@
                     </table>
                 </div>
             </div>
+        </section>
+        </div>
+
+        <div id="conferenceStandingsSubTab" class="sub-tab-panel">
+        <section class="records-panel top25-panel">
+            <p class="leaderboard-hint">Every conference's own standings, ordered by conference record. Offensive and Defensive Rank here are recalculated relative to just that conference's members, not the national numbers from the Top 25 tab.</p>
+
+            <details class="info-box">
+                <summary>How this works</summary>
+                <div class="info-box-body">
+                    <h4>Conf Rank</h4>
+                    <p>Standing within the selected conference, ordered by conference win percentage (ties broken by conference wins, then overall wins). This is a plain record sort, not a calculated score.</p>
+                    <h4>Rank</h4>
+                    <p>The team's national rank from <strong>The Coordinator 25</strong> (see the Top 25 tab), shown only when the team is actually inside the national top 25 &mdash; blank otherwise.</p>
+                    <h4>Offense / Defense</h4>
+                    <p>The exact same calculation as the Top 25 tab's Offensive/Defensive Rank, just recomputed relative to only this conference's members instead of all real FBS teams &mdash; so a #1 offense here is the best offense <em>in the conference</em>, not nationally.</p>
+                    <h4>Historical weeks</h4>
+                    <p>Conference membership and week-by-week snapshots work the same way as the Top 25 tab (see its info box) &mdash; a completed season predating this feature has no retained conference-record history, so Conf Rank isn't meaningful there.</p>
+                </div>
+            </details>
+
+            <div id="confStandingsLoginPrompt" class="login-prompt-card hidden">
+                <h2>Log in to track Conference Standings</h2>
+                <p>Like the Top 25, Conference Standings needs an account so week-by-week history stays put across visits. Once you're logged in, just upload or refresh like normal &mdash; every week gets saved automatically.</p>
+                <div class="modal-actions">
+                    <a href="/signup.html" class="refresh-btn">Sign Up</a>
+                    <a href="/login.html" class="link-btn">Already have an account? Log In</a>
+                </div>
+            </div>
+
+            <div id="confStandingsContent">
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <label for="confStandingsYearSelect">Year</label>
+                        <select id="confStandingsYearSelect"></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="confStandingsWeekSelect">Week</label>
+                        <select id="confStandingsWeekSelect"></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="confStandingsConferenceSelect">Conference</label>
+                        <select id="confStandingsConferenceSelect"></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <button id="confStandingsCurrentBtn" type="button" class="top25-current-btn">📍 Jump to Current</button>
+                    </div>
+                    <div class="toolbar-group">
+                        <button id="confStandingsMyConferenceBtn" type="button" class="top25-current-btn">🏟️ Jump to Your Conference</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table id="confStandingsTable">
+                        <thead>
+                            <tr>
+                                <th>Rank</th><th>Conf Rank</th><th>Team</th><th>Record</th><th>Conf Record</th>
+                                <th class="sortable-col" data-sort-key="offenseRank">Offense</th>
+                                <th class="sortable-col" data-sort-key="defenseRank">Defense</th>
+                            </tr>
+                        </thead>
+                        <tbody id="confStandingsBody"><tr><td colspan="7" class="empty-row">Upload a save file to see conference standings.</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        </div>
+
+        <div id="awardsSubTab" class="sub-tab-panel">
+        <section class="records-panel top25-panel">
+            <p class="leaderboard-hint">All 24 major end-of-season awards the save tracks &mdash; the Heisman's live in-season race, every award's year-by-year winners, and which schools have won the most.</p>
+
+            <details class="info-box">
+                <summary>How this works</summary>
+                <div class="info-box-body">
+                    <h4>Heisman Race</h4>
+                    <p>The only award with a real in-season leaderboard - pulled straight from the save's own live rankings. Every other award here is only ever decided at season's end, same as real college football, so it only ever shows as a final winner below.</p>
+                    <h4>Awards by Year</h4>
+                    <p>All 24 tracked awards &mdash; Heisman, Player/Freshman/Academic/Versatile honors, Best Quarterback/Running Back/Receiver/Tight End/Center/Interior Line/Defensive Line/Linebacker/Defensive Back/Kicker/Punter, and Best Head Coach/Assistant Coach &mdash; for whichever season you pick.</p>
+                    <h4>School Totals</h4>
+                    <p>Every school that's won at least one award, ranked by total wins &mdash; click a school to see exactly which awards and how many of each.</p>
+                </div>
+            </details>
+
+            <div id="awardsLoginPrompt" class="login-prompt-card hidden">
+                <h2>Log in to track Awards</h2>
+                <p>Like the rest of National Landscape's history features, this needs an account so award history stays put across visits. Once you're logged in, just upload or refresh like normal &mdash; every award gets saved automatically.</p>
+                <div class="modal-actions">
+                    <a href="/signup.html" class="refresh-btn">Sign Up</a>
+                    <a href="/login.html" class="link-btn">Already have an account? Log In</a>
+                </div>
+            </div>
+
+            <div id="awardsContent">
+                <h2>🏆 Heisman Race</h2>
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <label for="heismanYearSelect">Year</label>
+                        <select id="heismanYearSelect"></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="heismanWeekSelect">Week</label>
+                        <select id="heismanWeekSelect"></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <button id="heismanCurrentBtn" type="button" class="top25-current-btn">📍 Jump to Current</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table id="heismanTable">
+                        <thead><tr><th>Rank</th><th>Player</th><th>School</th></tr></thead>
+                        <tbody id="heismanBody"><tr><td colspan="3" class="empty-row">Upload a save file to see the Heisman race.</td></tr></tbody>
+                    </table>
+                </div>
+
+                <h2>📅 Awards by Year</h2>
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <label for="awardsYearSelect">Year</label>
+                        <select id="awardsYearSelect"></select>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table id="awardsByYearTable">
+                        <thead><tr><th>Award</th><th>Winner</th><th>Position</th><th>School</th></tr></thead>
+                        <tbody id="awardsByYearBody"><tr><td colspan="4" class="empty-row">Upload a save file to see award winners.</td></tr></tbody>
+                    </table>
+                </div>
+
+                <h2>🏫 School Award Totals</h2>
+                <div class="table-wrap">
+                    <table id="awardsSchoolsTable">
+                        <thead><tr><th>#</th><th>School</th><th>Total Awards</th></tr></thead>
+                        <tbody id="awardsSchoolsBody"><tr><td colspan="3" class="empty-row">Upload a save file to see school award totals.</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        </div>
+
+        <div id="powerRankingsSubTab" class="sub-tab-panel">
+        <section class="averages-panel">
+            <p class="leaderboard-hint">Every currently-rostered player nationwide (not recruits), grouped by team caliber and class year. Team tier is the save's own 0-10 Team Prestige bucketed into 4 tiers, mirroring recruit star tiers. "Starter" means the highest-Overall player(s) at that exact position on their roster (the save's own depth chart data didn't resolve reliably, so this is a realistic-slot-count proxy instead).</p>
+
+            <details class="info-box">
+                <summary>How this works &amp; why it matters</summary>
+                <div class="info-box-body">
+                    <h4>What this page shows</h4>
+                    <p>Everyone currently <strong>on a roster</strong> nationwide &mdash; not recruits. This is where you go to answer "how good does a team actually need to be at a position to compete at a given level," which the Class Landscape sub-tab (under Recruiting Coordinator) can't tell you since it's only looking at incoming prospects.</p>
+
+                    <h4>Team Tier</h4>
+                    <p>Every team gets bucketed into one of 4 tiers based on the save's own 0-10 Team Prestige rating: <strong>Championship Caliber</strong> (7-10), <strong>Contending</strong> (5-6), <strong>Competing</strong> (3-4), <strong>Rebuilding</strong> (0-2). These cutoffs aren't arbitrary &mdash; they split all 138 real teams into four roughly even groups, so each tier represents a genuine quarter of the national landscape, not a skewed bucket.</p>
+
+                    <h4>"Starter"</h4>
+                    <p>The save's own depth chart data didn't resolve to sensible players when checked, so instead a player is counted as a starter if they're the top-Overall player(s) at their exact position on their team, using realistic slot counts (1 for QB, 3 for WR, 2 for CB, etc.). Anywhere you see "starters weighted 3&times;," this is the definition being used.</p>
+
+                    <h4>🏆 National Power Rankings</h4>
+                    <p>The single best Offense, Defense, and Overall roster nationwide. <strong>Offense</strong> blends the QB/RB/WR/TE/Offensive Line position-group scores together; <strong>Defense</strong> blends DL/LB/DB; <strong>Overall</strong> blends all ten groups. Click any team card to see its top 3 players at that exact set of positions.</p>
+
+                    <h4>Top 5 Teams, by Position Group</h4>
+                    <p>Same idea, narrowed to one position group at a time. A team's group score averages its starter-weighted Overall at every individual position in the group separately (e.g. Offensive Line = the average of Left Tackle, Left Guard, Center, Right Guard, and Right Tackle averages) rather than just pooling every lineman together &mdash; that keeps a team with 12 mediocre backup guards from outscoring a team with 5 genuinely great starters. A team missing a position entirely (no Fullback, say) is simply left out of that one average instead of being penalized for it.</p>
+
+                    <h4>Tier &times; Class Matrix</h4>
+                    <p>Pick a position and see its average Overall across every combination of team caliber and class year at once. This is the best view for spotting <strong>development curves</strong> &mdash; e.g. confirming that a Contending team's Junior WRs really do outgrade a Rebuilding team's Junior WRs, or seeing how much runway a true freshman typically needs before they're producing at a Championship-Caliber level.</p>
+
+                    <h4>All Positions, by Class</h4>
+                    <p>The exhaustive reference table &mdash; every position broken out by class year, filterable by position and team tier. Key Rating columns show whichever 1-3 ratings matter most for that specific position (e.g. Throw Power/Accuracy for QB, Man Coverage for CB), pulled from the players' real, position-specific ratings rather than generic athletic testing numbers.</p>
+
+                    <h4>Why it matters</h4>
+                    <p>This tab is your benchmark for "what does good actually look like." Whether you're deciding if your own roster is competitive at a position, figuring out how many years a recruit needs to develop into a starter, or just want to know which programs are stacked where &mdash; this is where those national baselines live. It pairs directly with the Recruit Targets tab: the position-need scoring there is built by comparing your roster against these same national averages.</p>
+                </div>
+            </details>
         </section>
 
         <section class="averages-panel">
@@ -541,11 +690,14 @@
                 </table>
             </div>
         </section>
+        </div>
     </div>
 
     <div id="coachingCareerTab" class="tab-panel">
         <div class="sub-tabs">
             <button class="sub-tab-btn active" data-subtab="rivalriesRecordsSubTab">🏆 Rivalries &amp; Records</button>
+            <button class="sub-tab-btn" data-subtab="recruitingClassesSubTab">📈 Recruiting Classes</button>
+            <button class="sub-tab-btn" data-subtab="notablePlayersSubTab">🌟 Best Players</button>
         </div>
 
         <div id="rivalriesRecordsSubTab" class="sub-tab-panel active">
@@ -854,6 +1006,116 @@
                 </div>
             </section>
         </div>
+
+        <div id="recruitingClassesSubTab" class="sub-tab-panel">
+            <section class="records-panel">
+                <p class="leaderboard-hint">Your own signing class, year by year &mdash; built from your roster's true Freshmen each time you upload or refresh (their recruiting star rating stays on their player record for their whole career, so this doesn't need to separately track the recruiting board). A class still being recruited keeps refining until National Signing Day passes and those players become Sophomores.</p>
+
+                <details class="info-box">
+                    <summary>How this works &amp; why it matters</summary>
+                    <div class="info-box-body">
+                        <h4>What this page shows</h4>
+                        <p>Every recruiting class you've signed across your dynasty, not just the class currently being recruited &mdash; the save's own recruiting board only shows the active cycle, so a class disappears from the game's own view the moment the next one starts. This tab keeps it.</p>
+                        <h4>Why Freshmen</h4>
+                        <p>A player's recruiting star rating is set once, at signing, and never changes afterward - a Senior on your roster still carries the exact rating they signed with. So every upload, whoever's currently a true Freshman on your roster <strong>is</strong> that dynasty year's signing class, without needing to watch commitments happen in real time.</p>
+                        <h4>Why it matters</h4>
+                        <p>Recruiting trends are a real signal of program trajectory - are your classes getting better as your prestige grows, or did a down season show up in the next class? Click any year to see the full signee list.</p>
+                    </div>
+                </details>
+
+                <div id="recruitingClassesLoginPrompt" class="login-prompt-card hidden">
+                    <h2>Log in to track your Recruiting Classes</h2>
+                    <p>Like the rest of Coaching Career, this needs an account so your class history stays put across visits. Once you're logged in, just upload or refresh like normal &mdash; every class gets saved automatically.</p>
+                    <div class="modal-actions">
+                        <a href="/signup.html" class="refresh-btn">Sign Up</a>
+                        <a href="/login.html" class="link-btn">Already have an account? Log In</a>
+                    </div>
+                </div>
+
+                <div id="recruitingClassesContent">
+                    <div class="toolbar">
+                        <div class="toolbar-group">
+                            <label for="recruitingClassesSchoolSelect">School</label>
+                            <select id="recruitingClassesSchoolSelect">
+                                <option value="">Whole Career (All Schools)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h2>Career Totals</h2>
+                    <div id="recruitingCareerStats" class="team-hero-stats"></div>
+
+                    <h2>Highest-Rated Signees Ever</h2>
+                    <div id="recruitingTopSignees" class="player-detail-panel"></div>
+
+                    <h2>By Year</h2>
+                    <div class="table-wrap">
+                        <table id="recruitingClassesTable">
+                            <thead>
+                                <tr>
+                                    <th>Year</th><th>School</th><th>Signees</th><th>Avg Stars</th><th>Blue-Chips (4&ndash;5&#9733;)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recruitingClassesBody"><tr><td colspan="5" class="empty-row">Upload a save file to see your recruiting class history.</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <div id="notablePlayersSubTab" class="sub-tab-panel">
+            <section class="records-panel">
+                <p class="leaderboard-hint">The best players who've ever played for you, ranked by peak Overall &mdash; built from your own team's starters each time you upload or refresh, so a standout stays on this list long after they've graduated or been drafted.</p>
+
+                <details class="info-box">
+                    <summary>How this works &amp; why it matters</summary>
+                    <div class="info-box-body">
+                        <h4>What this page shows</h4>
+                        <p>Every starter-caliber player who's suited up for you, across your whole coaching career (not just the current roster) &mdash; ranked by the highest Overall rating they ever reached while on your team. Key stats (passing/rushing/receiving yards and TDs for skill positions, tackles/sacks/interceptions for defenders) come straight from the save's own permanent career stat totals for that player.</p>
+                        <h4>Why only starters</h4>
+                        <p>Every rostered player, tracked for an entire coaching career, would mostly be bench depth nobody would ever look up here. Starters (the same "top players at each position" rule as National Power Rankings) keeps this to players who could plausibly belong on a "best ever" list.</p>
+                        <h4>Why it matters</h4>
+                        <p>Your program's Mount Rushmore - the Heisman-caliber QB, the shutdown corner, the workhorse back - preserved past the moment they leave, and filterable by school if you've coached at more than one.</p>
+                    </div>
+                </details>
+
+                <div id="notablePlayersLoginPrompt" class="login-prompt-card hidden">
+                    <h2>Log in to track your Best Players</h2>
+                    <p>Like the rest of Coaching Career, this needs an account so your all-time roster stays put across visits. Once you're logged in, just upload or refresh like normal &mdash; every starter gets saved automatically.</p>
+                    <div class="modal-actions">
+                        <a href="/signup.html" class="refresh-btn">Sign Up</a>
+                        <a href="/login.html" class="link-btn">Already have an account? Log In</a>
+                    </div>
+                </div>
+
+                <div id="notablePlayersContent">
+                    <div class="toolbar">
+                        <div class="toolbar-group">
+                            <label for="notablePlayersSchoolSelect">School</label>
+                            <select id="notablePlayersSchoolSelect">
+                                <option value="">Whole Career (All Schools)</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-group">
+                            <label for="notablePlayersPositionSelect">Position</label>
+                            <select id="notablePlayersPositionSelect">
+                                <option value="">All Positions</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table id="notablePlayersTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th><th>Player</th><th>School</th><th>Overall</th><th>Key Stats</th>
+                                </tr>
+                            </thead>
+                            <tbody id="notablePlayersBody"><tr><td colspan="5" class="empty-row">Upload a save file to see your best players.</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
     </div>
 
     <div id="adminTab" class="tab-panel">
@@ -944,7 +1206,7 @@
         <button id="accountModalClose" class="modal-close" aria-label="Close">&times;</button>
         <div class="modal-icon" id="accountModalIcon">🎉</div>
         <h2 id="accountModalTitle">You've used your uploads without an account!</h2>
-        <p id="accountModalMessage">Create an account to keep using Recruiting Coordinator.</p>
+        <p id="accountModalMessage">Create an account to keep using Dynasty Coordinator.</p>
         <div class="modal-actions">
             <a href="/signup.html" class="refresh-btn">Sign Up</a>
             <a href="/login.html" class="link-btn">Already have an account? Log In</a>
@@ -961,31 +1223,31 @@
         <p class="modal-subhead">Your save file loaded correctly. Here's a quick look at what's here and where to find it.</p>
         <div class="welcome-feature-list">
             <div class="welcome-feature">
-                <div class="welcome-feature-icon">📋</div>
+                <div class="welcome-feature-icon">🎯</div>
                 <div>
-                    <div class="welcome-feature-title">Recruit Explorer</div>
-                    <div class="welcome-feature-desc">Every recruit in your class, rated relative to their peers. Switch to the <strong>Class Landscape</strong> sub-tab for position-by-position national averages.</div>
+                    <div class="welcome-feature-title">Recruiting Coordinator</div>
+                    <div class="welcome-feature-desc">Every recruit rated relative to their peers, and a personalized target board built from your actual roster needs, depth chart, and NIL budget.</div>
                 </div>
             </div>
             <div class="welcome-feature">
                 <div class="welcome-feature-icon">🏆</div>
                 <div>
                     <div class="welcome-feature-title">National Landscape</div>
-                    <div class="welcome-feature-desc">Power rankings and every roster nationwide, so you know what "good" actually looks like at each position.</div>
+                    <div class="welcome-feature-desc">Top 25 poll, conference standings, awards races, and power rankings for every team - so you always know what "good" actually looks like.</div>
                 </div>
             </div>
             <div class="welcome-feature">
-                <div class="welcome-feature-icon">🎯</div>
+                <div class="welcome-feature-icon">📜</div>
                 <div>
-                    <div class="welcome-feature-title">Recruit Targets</div>
-                    <div class="welcome-feature-desc">Your personalized target board, built from your actual roster needs, depth chart, and NIL budget - probably the tab you'll use most.</div>
+                    <div class="welcome-feature-title">Coaching Career</div>
+                    <div class="welcome-feature-desc">Your program's permanent record - every rivalry, recruiting class, and standout player, kept long after the save itself would forget them.</div>
                 </div>
             </div>
             <div class="welcome-feature">
                 <div class="welcome-feature-icon">⚙️</div>
                 <div>
                     <div class="welcome-feature-title">Coordinator Settings</div>
-                    <div class="welcome-feature-desc">Tell the app your team direction and position priorities - it shapes the Recruit Targets board to fit how you want to build.</div>
+                    <div class="welcome-feature-desc">Tell the app your team direction and position priorities - it shapes your Recruit Targets board to fit how you want to build.</div>
                 </div>
             </div>
         </div>

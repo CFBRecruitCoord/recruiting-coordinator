@@ -1470,6 +1470,12 @@ tr.detail-row td {
     margin: 24px 0 12px;
 }
 
+.records-panel .key-stat {
+    color: var(--accent);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
 .top25-panel .key-stat {
     color: var(--text-dim);
     font-variant-numeric: tabular-nums;
