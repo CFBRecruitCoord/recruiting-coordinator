@@ -2142,7 +2142,15 @@
         if (!usMap || usMap.dataset.wired) return; // wire the hover/click listeners only once
         usMap.dataset.wired = 'true';
 
-        let pinnedState = null;
+        // One shared "pinned" target (either a state <path> or a school's
+        // hit-circle) so a click-to-pin on either kind never gets silently
+        // clobbered by a stray hover on the other kind.
+        let pinnedEl = null;
+
+        function clearHighlights() {
+            document.querySelectorAll('.us-state').forEach(p => p.classList.remove('us-state-active'));
+            document.querySelectorAll('.us-school-marker-group').forEach(g => g.classList.remove('us-school-marker-group-active'));
+        }
 
         function showStatePopup(pathEl) {
             const stateName = pathEl.dataset.name;
@@ -2167,33 +2175,87 @@
                 : '<p class="empty-row">No tracked schools in this state.</p>';
 
             popup.classList.remove('hidden');
-            document.querySelectorAll('.us-state').forEach(p => p.classList.remove('us-state-active'));
+            clearHighlights();
             pathEl.classList.add('us-state-active');
         }
 
-        function hideStatePopup() {
+        // One specific school's own history - the marker equivalent of the
+        // state popup above, matched against the same allSchoolRecords
+        // already loaded for the table/state popups (no extra fetch).
+        function showSchoolPopup(groupEl) {
+            const teamName = groupEl.dataset.team;
+            const r = allSchoolRecords.find(x => x.name === teamName);
+            if (!r) return;
+
+            popupTitle.textContent = r.name;
+            const rows = [
+                ['Overall', formatRecord(r.wins, r.losses, r.ties)],
+                ['Home / Away', `${formatRecord(r.homeWins, r.homeLosses, r.homeTies)} / ${formatRecord(r.awayWins, r.awayLosses, r.awayTies)}`],
+                ['Last Win', r.lastWinYear != null ? `${toCalendarYear(r.lastWinYear)} (Wk ${r.lastWinWeek})` : '&mdash;'],
+                ['Last Won There', r.lastAwayWinYear != null ? `${toCalendarYear(r.lastAwayWinYear)} (Wk ${r.lastAwayWinWeek})` : 'Never']
+            ];
+            popupBody.innerHTML =
+                (r.mascot ? `<div class="us-map-popup-school-detail" style="margin-bottom: 8px;">${escapeHtml(r.mascot)}</div>` : '') +
+                rows.map(([label, value]) => `
+                    <div class="us-map-popup-school">
+                        <div class="us-map-popup-school-name">${label}</div>
+                        <div class="us-map-popup-record">${value}</div>
+                    </div>
+                `).join('') +
+                (r.biggestWin ? `<div class="us-map-popup-school"><div class="us-map-popup-school-name">Biggest Win</div><div class="us-map-popup-record">${formatGameDetail(r.biggestWin)}</div></div>` : '') +
+                (r.worstLoss ? `<div class="us-map-popup-school"><div class="us-map-popup-school-name">Worst Loss</div><div class="us-map-popup-record">${formatGameDetail(r.worstLoss)}</div></div>` : '');
+
+            popup.classList.remove('hidden');
+            clearHighlights();
+            groupEl.classList.add('us-school-marker-group-active');
+        }
+
+        function hidePopup() {
             popup.classList.add('hidden');
-            document.querySelectorAll('.us-state').forEach(p => p.classList.remove('us-state-active'));
-            pinnedState = null;
+            clearHighlights();
+            pinnedEl = null;
         }
 
         document.querySelectorAll('.us-state').forEach(pathEl => {
             pathEl.addEventListener('mouseenter', () => {
-                if (pinnedState) return; // a click-pinned popup takes priority over hover
+                if (pinnedEl) return; // a click-pinned popup takes priority over hover
                 showStatePopup(pathEl);
             });
             pathEl.addEventListener('mouseleave', () => {
-                if (pinnedState) return;
-                hideStatePopup();
+                if (pinnedEl) return;
+                hidePopup();
             });
             pathEl.addEventListener('click', () => {
-                if (pinnedState === pathEl) { hideStatePopup(); return; }
-                pinnedState = pathEl;
+                if (pinnedEl === pathEl) { hidePopup(); return; }
+                pinnedEl = pathEl;
                 showStatePopup(pathEl);
             });
         });
 
-        if (popupClose) popupClose.addEventListener('click', hideStatePopup);
+        // Each school's larger invisible hit-circle sits directly on top of
+        // its state at that exact point, so hovering it takes priority over
+        // the state there (see .us-school-marker-hit in style.css) - hovering
+        // anywhere else in the same state still falls through to the state's
+        // own handlers above exactly as before.
+        document.querySelectorAll('.us-school-marker-group').forEach(groupEl => {
+            const hitEl = groupEl.querySelector('.us-school-marker-hit');
+            if (!hitEl) return;
+            hitEl.addEventListener('mouseenter', () => {
+                if (pinnedEl) return;
+                showSchoolPopup(groupEl);
+            });
+            hitEl.addEventListener('mouseleave', () => {
+                if (pinnedEl) return;
+                hidePopup();
+            });
+            hitEl.addEventListener('click', () => {
+                if (pinnedEl === groupEl) { hidePopup(); return; }
+                pinnedEl = groupEl;
+                showSchoolPopup(groupEl);
+            });
+        });
+
+        if (popupClose) popupClose.addEventListener('click', hidePopup);
     }
 
     // Fetches everything Rivalries & Records needs. 401 on the first call

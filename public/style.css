@@ -1545,16 +1545,35 @@ tr.detail-row td {
     stroke: #ffb199;
 }
 
-/* One dot per school, at its real host city - purely a visual layer
-   (pointer-events: none) so hovering/clicking a marker still triggers the
-   state underneath it rather than the marker shadowing that interaction.
-   The native <title> on each circle (see index.html) gives a free
-   school-name tooltip on hover with zero extra JS. */
+/* One dot per school, at its real host city. Each is actually two circles:
+   a small visible dot (.us-school-marker, purely decorative - pointer-
+   events: none) and a larger invisible one on top of it
+   (.us-school-marker-hit) that actually captures hover/click, since a 3px
+   dot alone is a hard target to hit precisely. The hit circle sitting
+   directly over a state means hovering it takes priority over the state
+   underneath (see setupSchoolMarkerInteractivity() in app.js) - hovering
+   elsewhere in the same state still falls through to the state's own
+   hover exactly as before. The native <title> on the visible dot gives a
+   free plain-text school-name tooltip as a fallback even before JS runs. */
+.us-school-marker-hit {
+    fill: transparent;
+    cursor: pointer;
+}
+
 .us-school-marker {
     fill: var(--accent-2);
     stroke: var(--bg);
     stroke-width: 0.75;
     pointer-events: none;
+    transition: r 0.1s ease;
+}
+
+/* Hovering/clicking a school's own marker (not just its state) shows that
+   one school's history - see showSchoolPopup() in app.js. */
+.us-school-marker-group-active .us-school-marker {
+    r: 5;
+    stroke: #ffb199;
+    stroke-width: 1.25;
 }
 
 .us-map-popup {
