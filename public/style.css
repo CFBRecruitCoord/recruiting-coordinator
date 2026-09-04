@@ -1524,6 +1524,7 @@ tr.detail-row td {
     border-radius: var(--radius);
     padding: 16px;
     margin-bottom: 16px;
+    max-width: 640px;
 }
 
 #usMap {
@@ -1543,6 +1544,18 @@ tr.detail-row td {
 .us-state.us-state-active {
     fill: var(--accent);
     stroke: #ffb199;
+}
+
+/* One dot per school, at its real host city - purely a visual layer
+   (pointer-events: none) so hovering/clicking a marker still triggers the
+   state underneath it rather than the marker shadowing that interaction.
+   The native <title> on each circle (see index.html) gives a free
+   school-name tooltip on hover with zero extra JS. */
+.us-school-marker {
+    fill: var(--accent-2);
+    stroke: var(--bg);
+    stroke-width: 0.75;
+    pointer-events: none;
 }
 
 .us-map-popup {
