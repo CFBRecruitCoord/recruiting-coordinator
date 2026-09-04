@@ -83,6 +83,18 @@
         if (e.key === 'Escape' && accountModal && !accountModal.classList.contains('hidden')) hideAccountModal();
     });
 
+    // ---- Landing hero ----
+    // Visible by default (no "hidden" class in the HTML) - it's the "no
+    // data loaded yet" state. Hidden the moment a save file loads
+    // successfully, on every fresh page load alike (there's no localStorage
+    // flag here unlike the welcome modal below - a brand-new browser tab
+    // always starts with empty allRecruits, so it always starts by showing
+    // this until something actually loads).
+    const landingHero = document.getElementById('landingHero');
+    function hideLandingHero() {
+        if (landingHero) landingHero.classList.add('hidden');
+    }
+
     // ---- Welcome/overview modal ----
     // Shown once, right after someone's first-ever successful upload
     // (either path: drag-and-drop/browse via uploadFile(), or the personal-
@@ -348,6 +360,7 @@
             renderTopTeamsTable();
             renderPowerRankings();
             renderRecruitTargets();
+            hideLandingHero();
             maybeShowWelcomeModal();
 
             // First successful upload ever (no refresh path configured yet):
@@ -465,6 +478,7 @@
             renderTopTeamsTable();
             renderPowerRankings();
             renderRecruitTargets();
+            hideLandingHero();
             maybeShowWelcomeModal();
         } catch (err) {
             console.error(err);
@@ -510,7 +524,7 @@
 
     function computeAndRenderAverages() {
         if (!allRecruits.length) {
-            averagesBody.innerHTML = '<tr><td colspan="10" class="empty-row">Load recruits in the Recruit Explorer tab to see the class landscape.</td></tr>';
+            averagesBody.innerHTML = '<tr><td colspan="10" class="empty-row">Upload a save file to see the class landscape.</td></tr>';
             return;
         }
 
@@ -613,7 +627,7 @@
 
     function renderMatrixTable() {
         if (!allRosterPlayers.length) {
-            matrixBody.innerHTML = '<tr><td colspan="5" class="empty-row">Load a save file in the Recruit Explorer tab to see the national landscape.</td></tr>';
+            matrixBody.innerHTML = '<tr><td colspan="5" class="empty-row">Upload a save file to see the national landscape.</td></tr>';
             return;
         }
 
@@ -635,7 +649,7 @@
         renderTierLegend();
 
         if (!allRosterPlayers.length) {
-            rosterBody.innerHTML = '<tr><td colspan="6" class="empty-row">Load a save file in the Recruit Explorer tab to see the national landscape.</td></tr>';
+            rosterBody.innerHTML = '<tr><td colspan="6" class="empty-row">Upload a save file to see the national landscape.</td></tr>';
             return;
         }
 
@@ -798,7 +812,7 @@
 
     function renderPowerRankings() {
         if (!allRosterPlayers.length) {
-            powerRankings.innerHTML = '<p class="empty-row">Load a save file in the Recruit Explorer tab to see power rankings.</p>';
+            powerRankings.innerHTML = '<p class="empty-row">Upload a save file to see power rankings.</p>';
             return;
         }
 
@@ -833,7 +847,7 @@
 
     function renderTopTeamsTable() {
         if (!allRosterPlayers.length) {
-            topTeamsContainer.innerHTML = '<p class="empty-row">Load a save file in the Recruit Explorer tab to see top teams.</p>';
+            topTeamsContainer.innerHTML = '<p class="empty-row">Upload a save file to see top teams.</p>';
             return;
         }
 
@@ -1347,7 +1361,7 @@
         }
         if (!allRecruits.length || !allRosterPlayers.length) {
             targetsTitle.textContent = `🎯 Recruit Targets for ${userTeamContext.name}`;
-            targetsContainer.innerHTML = '<p class="empty-row">Load a save file in the Recruit Explorer tab to see recruit targets.</p>';
+            targetsContainer.innerHTML = '<p class="empty-row">Upload a save file to see recruit targets.</p>';
             return;
         }
 
@@ -1576,8 +1590,8 @@
         hideToggle.checked = coordinatorSettings.hideGemBustStatus;
         ignoreToggle.checked = coordinatorSettings.ignoreGemBustStatus;
 
-        // Both toggles apply instantly to the Recruit Explorer tab (there's
-        // no "refresh" step there) - hiding/showing the badge and, for
+        // Both toggles apply instantly to the Recruit Explorer sub-tab
+        // (there's no "refresh" step there) - hiding/showing the badge and, for
         // Ignore, recomputing the Raw/NIL Adj. Rating columns right away.
         // The Recruit Targets board is intentionally NOT re-rendered here -
         // like every other Coordinator Settings change, it only takes effect

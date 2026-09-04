@@ -27,58 +27,86 @@
         <p class="subtitle">Upload a CFB 27 dynasty save to explore its recruiting class. Spun out from Dynasty Tracker so this tool can be iterated on independently.</p>
     </header>
 
+    <section id="landingHero" class="landing-hero">
+        <div class="landing-hero-field">
+            <div class="landing-hero-yardline"></div>
+            <h2 class="landing-hero-title">Your Dynasty's Recruiting Class, Actually Explained</h2>
+            <p class="landing-hero-tagline">Upload your CFB 27 dynasty save and get a real recruiting board built from your own roster, needs, and NIL budget &mdash; not just a generic top-recruits list.</p>
+        </div>
+        <div class="landing-steps">
+            <div class="landing-step">
+                <div class="landing-step-icon">📤</div>
+                <div class="landing-step-num">1</div>
+                <div class="landing-step-title">Upload your save</div>
+                <div class="landing-step-desc">Drag in your dynasty save file below. It's read once to pull your recruiting class and rosters &mdash; nothing about your save is stored.</div>
+            </div>
+            <div class="landing-step">
+                <div class="landing-step-icon">📊</div>
+                <div class="landing-step-num">2</div>
+                <div class="landing-step-title">We break it down</div>
+                <div class="landing-step-desc">Every recruit gets rated against their peers, your roster gets compared to the national landscape, and your program's needs get scored position by position.</div>
+            </div>
+            <div class="landing-step">
+                <div class="landing-step-icon">🎯</div>
+                <div class="landing-step-num">3</div>
+                <div class="landing-step-title">Get your board</div>
+                <div class="landing-step-desc">A personalized target list built from your actual situation, tunable to how you want to build &mdash; rebuilding, maintaining, or competing now.</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="refresh-panel hidden" id="refreshPanel">
+        <div class="refresh-row">
+            <button id="refreshBtn" class="refresh-btn">🔄 Refresh from Save File</button>
+            <div class="save-path-display">
+                <span id="savePathText"></span>
+                <button id="editPathBtn" class="link-btn">change</button>
+            </div>
+        </div>
+        <div id="savePathEditor" class="path-editor hidden">
+            <input type="text" id="savePathInput" class="wide-search">
+            <button id="savePathBtn">Save Path</button>
+            <button id="cancelPathBtn" class="link-btn">cancel</button>
+        </div>
+    </section>
+
+    <section class="upload-panel" id="uploadPanel">
+        <details class="manual-upload-details" id="manualUploadDetails" open>
+            <summary id="manualUploadSummary">Upload a dynasty save file</summary>
+            <label class="dropzone" id="dropzone">
+                <input type="file" id="fileInput" accept=".*" hidden>
+                <div class="dropzone-content">
+                    <div class="dropzone-icon">📂</div>
+                    <div class="dropzone-text">Drag &amp; drop your dynasty save file here, or click to browse</div>
+                    <div class="dropzone-hint">e.g. DYNASTY-AUG29-08h55m21-AUTOSAVE</div>
+                </div>
+            </label>
+        </details>
+        <div id="uploadStatus" class="upload-status"></div>
+
+        <div id="pathSetupPrompt" class="path-setup-prompt hidden">
+            <p>💾 Want one-click refreshes next time you play, instead of re-uploading? Save this file's full path:</p>
+            <div class="path-editor">
+                <input type="text" id="pathSetupInput" class="wide-search" placeholder="C:\path\to\your\dynasty\save\file">
+                <button id="pathSetupSaveBtn">Save Path</button>
+                <button id="pathSetupSkipBtn" class="link-btn">not now</button>
+            </div>
+        </div>
+    </section>
+
     <nav class="top-tabs">
-        <button class="tab-btn active" data-tab="recruitsTab">Recruit Explorer</button>
-        <button class="tab-btn" data-tab="nationalTab">National Landscape</button>
-        <button class="tab-btn" data-tab="targetsTab">Recruit Targets</button>
-        <button class="tab-btn" data-tab="settingsTab">Coordinator Settings</button>
+        <button class="tab-btn active" data-tab="dynastyRecruitingTab">Dynasty Recruiting</button>
         <button class="tab-btn hidden" data-tab="adminTab" id="adminTabBtn">Admin</button>
     </nav>
 
     <main class="main-content">
-    <div id="recruitsTab" class="tab-panel active">
-        <section class="refresh-panel hidden" id="refreshPanel">
-            <div class="refresh-row">
-                <button id="refreshBtn" class="refresh-btn">🔄 Refresh from Save File</button>
-                <div class="save-path-display">
-                    <span id="savePathText"></span>
-                    <button id="editPathBtn" class="link-btn">change</button>
-                </div>
-            </div>
-            <div id="savePathEditor" class="path-editor hidden">
-                <input type="text" id="savePathInput" class="wide-search">
-                <button id="savePathBtn">Save Path</button>
-                <button id="cancelPathBtn" class="link-btn">cancel</button>
-            </div>
-        </section>
-
-        <section class="upload-panel" id="uploadPanel">
-            <details class="manual-upload-details" id="manualUploadDetails" open>
-                <summary id="manualUploadSummary">Upload a dynasty save file</summary>
-                <label class="dropzone" id="dropzone">
-                    <input type="file" id="fileInput" accept=".*" hidden>
-                    <div class="dropzone-content">
-                        <div class="dropzone-icon">📂</div>
-                        <div class="dropzone-text">Drag &amp; drop your dynasty save file here, or click to browse</div>
-                        <div class="dropzone-hint">e.g. DYNASTY-AUG29-08h55m21-AUTOSAVE</div>
-                    </div>
-                </label>
-            </details>
-            <div id="uploadStatus" class="upload-status"></div>
-
-            <div id="pathSetupPrompt" class="path-setup-prompt hidden">
-                <p>💾 Want one-click refreshes next time you play, instead of re-uploading? Save this file's full path:</p>
-                <div class="path-editor">
-                    <input type="text" id="pathSetupInput" class="wide-search" placeholder="C:\path\to\your\dynasty\save\file">
-                    <button id="pathSetupSaveBtn">Save Path</button>
-                    <button id="pathSetupSkipBtn" class="link-btn">not now</button>
-                </div>
-            </div>
-        </section>
-
+    <div id="dynastyRecruitingTab" class="tab-panel active">
         <div class="sub-tabs">
             <button class="sub-tab-btn active" data-subtab="explorerSubTab">📋 Recruit Explorer</button>
             <button class="sub-tab-btn" data-subtab="classLandscapeSubTab">📊 Class Landscape</button>
+            <button class="sub-tab-btn" data-subtab="nationalTab">🏆 National Landscape</button>
+            <button class="sub-tab-btn" data-subtab="targetsTab">🎯 Recruit Targets</button>
+            <button class="sub-tab-btn" data-subtab="settingsTab">⚙️ Coordinator Settings</button>
         </div>
 
         <div id="explorerSubTab" class="sub-tab-panel active">
@@ -228,226 +256,226 @@
                                 <th>Avg NIL</th>
                             </tr>
                         </thead>
-                        <tbody id="averagesBody"><tr><td colspan="10" class="empty-row">Load recruits in the Recruit Explorer sub-tab to see the class landscape.</td></tr></tbody>
+                        <tbody id="averagesBody"><tr><td colspan="10" class="empty-row">Upload a save file to see the class landscape.</td></tr></tbody>
                     </table>
                 </div>
             </section>
         </div>
-    </div>
 
-    <div id="nationalTab" class="tab-panel">
-        <section class="averages-panel">
-            <p class="leaderboard-hint">Every currently-rostered player nationwide (not recruits), grouped by team caliber and class year. Team tier is the save's own 0-10 Team Prestige bucketed into 4 tiers, mirroring recruit star tiers. "Starter" means the highest-Overall player(s) at that exact position on their roster (the save's own depth chart data didn't resolve reliably, so this is a realistic-slot-count proxy instead).</p>
+        <div id="nationalTab" class="sub-tab-panel">
+            <section class="averages-panel">
+                <p class="leaderboard-hint">Every currently-rostered player nationwide (not recruits), grouped by team caliber and class year. Team tier is the save's own 0-10 Team Prestige bucketed into 4 tiers, mirroring recruit star tiers. "Starter" means the highest-Overall player(s) at that exact position on their roster (the save's own depth chart data didn't resolve reliably, so this is a realistic-slot-count proxy instead).</p>
 
-            <details class="info-box">
-                <summary>How this works &amp; why it matters</summary>
-                <div class="info-box-body">
-                    <h4>What this page shows</h4>
-                    <p>Everyone currently <strong>on a roster</strong> nationwide &mdash; not recruits. This is where you go to answer "how good does a team actually need to be at a position to compete at a given level," which the Class Landscape sub-tab (under Recruit Explorer) can't tell you since it's only looking at incoming prospects.</p>
+                <details class="info-box">
+                    <summary>How this works &amp; why it matters</summary>
+                    <div class="info-box-body">
+                        <h4>What this page shows</h4>
+                        <p>Everyone currently <strong>on a roster</strong> nationwide &mdash; not recruits. This is where you go to answer "how good does a team actually need to be at a position to compete at a given level," which the Class Landscape sub-tab can't tell you since it's only looking at incoming prospects.</p>
 
-                    <h4>Team Tier</h4>
-                    <p>Every team gets bucketed into one of 4 tiers based on the save's own 0-10 Team Prestige rating: <strong>Championship Caliber</strong> (7-10), <strong>Contending</strong> (5-6), <strong>Competing</strong> (3-4), <strong>Rebuilding</strong> (0-2). These cutoffs aren't arbitrary &mdash; they split all 138 real teams into four roughly even groups, so each tier represents a genuine quarter of the national landscape, not a skewed bucket.</p>
+                        <h4>Team Tier</h4>
+                        <p>Every team gets bucketed into one of 4 tiers based on the save's own 0-10 Team Prestige rating: <strong>Championship Caliber</strong> (7-10), <strong>Contending</strong> (5-6), <strong>Competing</strong> (3-4), <strong>Rebuilding</strong> (0-2). These cutoffs aren't arbitrary &mdash; they split all 138 real teams into four roughly even groups, so each tier represents a genuine quarter of the national landscape, not a skewed bucket.</p>
 
-                    <h4>"Starter"</h4>
-                    <p>The save's own depth chart data didn't resolve to sensible players when checked, so instead a player is counted as a starter if they're the top-Overall player(s) at their exact position on their team, using realistic slot counts (1 for QB, 3 for WR, 2 for CB, etc.). Anywhere you see "starters weighted 3&times;," this is the definition being used.</p>
+                        <h4>"Starter"</h4>
+                        <p>The save's own depth chart data didn't resolve to sensible players when checked, so instead a player is counted as a starter if they're the top-Overall player(s) at their exact position on their team, using realistic slot counts (1 for QB, 3 for WR, 2 for CB, etc.). Anywhere you see "starters weighted 3&times;," this is the definition being used.</p>
 
-                    <h4>🏆 National Power Rankings</h4>
-                    <p>The single best Offense, Defense, and Overall roster nationwide. <strong>Offense</strong> blends the QB/RB/WR/TE/Offensive Line position-group scores together; <strong>Defense</strong> blends DL/LB/DB; <strong>Overall</strong> blends all ten groups. Click any team card to see its top 3 players at that exact set of positions.</p>
+                        <h4>🏆 National Power Rankings</h4>
+                        <p>The single best Offense, Defense, and Overall roster nationwide. <strong>Offense</strong> blends the QB/RB/WR/TE/Offensive Line position-group scores together; <strong>Defense</strong> blends DL/LB/DB; <strong>Overall</strong> blends all ten groups. Click any team card to see its top 3 players at that exact set of positions.</p>
 
-                    <h4>Top 5 Teams, by Position Group</h4>
-                    <p>Same idea, narrowed to one position group at a time. A team's group score averages its starter-weighted Overall at every individual position in the group separately (e.g. Offensive Line = the average of Left Tackle, Left Guard, Center, Right Guard, and Right Tackle averages) rather than just pooling every lineman together &mdash; that keeps a team with 12 mediocre backup guards from outscoring a team with 5 genuinely great starters. A team missing a position entirely (no Fullback, say) is simply left out of that one average instead of being penalized for it.</p>
+                        <h4>Top 5 Teams, by Position Group</h4>
+                        <p>Same idea, narrowed to one position group at a time. A team's group score averages its starter-weighted Overall at every individual position in the group separately (e.g. Offensive Line = the average of Left Tackle, Left Guard, Center, Right Guard, and Right Tackle averages) rather than just pooling every lineman together &mdash; that keeps a team with 12 mediocre backup guards from outscoring a team with 5 genuinely great starters. A team missing a position entirely (no Fullback, say) is simply left out of that one average instead of being penalized for it.</p>
 
-                    <h4>Tier &times; Class Matrix</h4>
-                    <p>Pick a position and see its average Overall across every combination of team caliber and class year at once. This is the best view for spotting <strong>development curves</strong> &mdash; e.g. confirming that a Contending team's Junior WRs really do outgrade a Rebuilding team's Junior WRs, or seeing how much runway a true freshman typically needs before they're producing at a Championship-Caliber level.</p>
+                        <h4>Tier &times; Class Matrix</h4>
+                        <p>Pick a position and see its average Overall across every combination of team caliber and class year at once. This is the best view for spotting <strong>development curves</strong> &mdash; e.g. confirming that a Contending team's Junior WRs really do outgrade a Rebuilding team's Junior WRs, or seeing how much runway a true freshman typically needs before they're producing at a Championship-Caliber level.</p>
 
-                    <h4>All Positions, by Class</h4>
-                    <p>The exhaustive reference table &mdash; every position broken out by class year, filterable by position and team tier. Key Rating columns show whichever 1-3 ratings matter most for that specific position (e.g. Throw Power/Accuracy for QB, Man Coverage for CB), pulled from the players' real, position-specific ratings rather than generic athletic testing numbers.</p>
+                        <h4>All Positions, by Class</h4>
+                        <p>The exhaustive reference table &mdash; every position broken out by class year, filterable by position and team tier. Key Rating columns show whichever 1-3 ratings matter most for that specific position (e.g. Throw Power/Accuracy for QB, Man Coverage for CB), pulled from the players' real, position-specific ratings rather than generic athletic testing numbers.</p>
 
-                    <h4>Why it matters</h4>
-                    <p>This tab is your benchmark for "what does good actually look like." Whether you're deciding if your own roster is competitive at a position, figuring out how many years a recruit needs to develop into a starter, or just want to know which programs are stacked where &mdash; this is where those national baselines live. It pairs directly with the Recruit Targets tab: the position-need scoring there is built by comparing your roster against these same national averages.</p>
+                        <h4>Why it matters</h4>
+                        <p>This tab is your benchmark for "what does good actually look like." Whether you're deciding if your own roster is competitive at a position, figuring out how many years a recruit needs to develop into a starter, or just want to know which programs are stacked where &mdash; this is where those national baselines live. It pairs directly with the Recruit Targets tab: the position-need scoring there is built by comparing your roster against these same national averages.</p>
+                    </div>
+                </details>
+
+                <h1 class="power-rankings-title">🏆 National Power Rankings</h1>
+                <p class="leaderboard-hint power-rankings-hint">The best Offense, Defense, and Overall roster nationwide &mdash; Offense blends Quarterback/Running Back/Wide Receiver/Tight End/Offensive Line, Defense blends Defensive Line/Linebacker/Defensive Back, and Overall blends all ten position groups below.</p>
+                <div id="powerRankings"><p class="empty-row">Upload a save file to see power rankings.</p></div>
+
+                <h2>Top 5 Teams, by Position Group</h2>
+                <p class="leaderboard-hint">A team's group score averages its starter-weighted Overall at every individual position in the group (e.g. Left Tackle, Left Guard, Center, Right Guard, Right Tackle for Offensive Line) &mdash; starters count 3&times; as much as bench players, and a team missing a position entirely (e.g. no Fullback) is simply left out of that one position's average rather than penalized for it.</p>
+                <div id="topTeamsContainer"><p class="empty-row">Upload a save file to see top teams.</p></div>
+
+                <h2>Tier &times; Class, by Position</h2>
+                <p class="leaderboard-hint">Pick a position to see how its average Overall looks across every combination of team caliber and class year &mdash; useful for spotting development curves, e.g. "how does a Contending team's Junior WR corps compare to a Championship Caliber team's."</p>
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <label for="matrixPositionSelect">Position</label>
+                        <select id="matrixPositionSelect"></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="matrixStartersOnly">Players</label>
+                        <select id="matrixStartersOnly">
+                            <option value="starters">Starters Only</option>
+                            <option value="all">Entire Roster</option>
+                        </select>
+                    </div>
                 </div>
-            </details>
-
-            <h1 class="power-rankings-title">🏆 National Power Rankings</h1>
-            <p class="leaderboard-hint power-rankings-hint">The best Offense, Defense, and Overall roster nationwide &mdash; Offense blends Quarterback/Running Back/Wide Receiver/Tight End/Offensive Line, Defense blends Defensive Line/Linebacker/Defensive Back, and Overall blends all ten position groups below.</p>
-            <div id="powerRankings"><p class="empty-row">Load a save file in the Recruit Explorer tab to see power rankings.</p></div>
-
-            <h2>Top 5 Teams, by Position Group</h2>
-            <p class="leaderboard-hint">A team's group score averages its starter-weighted Overall at every individual position in the group (e.g. Left Tackle, Left Guard, Center, Right Guard, Right Tackle for Offensive Line) &mdash; starters count 3&times; as much as bench players, and a team missing a position entirely (e.g. no Fullback) is simply left out of that one position's average rather than penalized for it.</p>
-            <div id="topTeamsContainer"><p class="empty-row">Load a save file in the Recruit Explorer tab to see top teams.</p></div>
-
-            <h2>Tier &times; Class, by Position</h2>
-            <p class="leaderboard-hint">Pick a position to see how its average Overall looks across every combination of team caliber and class year &mdash; useful for spotting development curves, e.g. "how does a Contending team's Junior WR corps compare to a Championship Caliber team's."</p>
-            <div class="toolbar">
-                <div class="toolbar-group">
-                    <label for="matrixPositionSelect">Position</label>
-                    <select id="matrixPositionSelect"></select>
+                <div class="table-wrap">
+                    <table id="matrixTable">
+                        <thead>
+                            <tr>
+                                <th>Team Tier</th><th>Freshman</th><th>Sophomore</th><th>Junior</th><th>Senior</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matrixBody"><tr><td colspan="5" class="empty-row">Upload a save file to see the national landscape.</td></tr></tbody>
+                    </table>
                 </div>
-                <div class="toolbar-group">
-                    <label for="matrixStartersOnly">Players</label>
-                    <select id="matrixStartersOnly">
-                        <option value="starters">Starters Only</option>
-                        <option value="all">Entire Roster</option>
-                    </select>
+
+                <h2>All Positions, by Class</h2>
+                <p class="leaderboard-hint">Every position broken out by class year in one table. Key Rating columns show whichever ratings matter most for that specific position.</p>
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <label for="rosterPositionFilter">Position</label>
+                        <select id="rosterPositionFilter"><option value="">All Positions</option></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="rosterTierFilter">Team Tier</label>
+                        <select id="rosterTierFilter">
+                            <option value="">All Tiers</option>
+                            <option value="4">Championship Caliber (7-10)</option>
+                            <option value="3">Contending (5-6)</option>
+                            <option value="2">Competing (3-4)</option>
+                            <option value="1">Rebuilding (0-2)</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="rosterStartersOnly">Players</label>
+                        <select id="rosterStartersOnly">
+                            <option value="starters">Starters Only</option>
+                            <option value="all">Entire Roster</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-            <div class="table-wrap">
-                <table id="matrixTable">
-                    <thead>
-                        <tr>
-                            <th>Team Tier</th><th>Freshman</th><th>Sophomore</th><th>Junior</th><th>Senior</th>
-                        </tr>
-                    </thead>
-                    <tbody id="matrixBody"><tr><td colspan="5" class="empty-row">Load a save file in the Recruit Explorer tab to see the national landscape.</td></tr></tbody>
-                </table>
-            </div>
-
-            <h2>All Positions, by Class</h2>
-            <p class="leaderboard-hint">Every position broken out by class year in one table. Key Rating columns show whichever ratings matter most for that specific position.</p>
-            <div class="toolbar">
-                <div class="toolbar-group">
-                    <label for="rosterPositionFilter">Position</label>
-                    <select id="rosterPositionFilter"><option value="">All Positions</option></select>
+                <div id="tierLegend" class="tier-legend"></div>
+                <div class="table-wrap">
+                    <table id="rosterTable">
+                        <thead>
+                            <tr>
+                                <th>Position</th><th>Class</th><th>Avg OVR</th>
+                                <th>Key Rating 1</th><th>Key Rating 2</th><th>Key Rating 3</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rosterBody"><tr><td colspan="6" class="empty-row">Upload a save file to see the national landscape.</td></tr></tbody>
+                    </table>
                 </div>
-                <div class="toolbar-group">
-                    <label for="rosterTierFilter">Team Tier</label>
-                    <select id="rosterTierFilter">
-                        <option value="">All Tiers</option>
-                        <option value="4">Championship Caliber (7-10)</option>
-                        <option value="3">Contending (5-6)</option>
-                        <option value="2">Competing (3-4)</option>
-                        <option value="1">Rebuilding (0-2)</option>
-                    </select>
+            </section>
+        </div>
+
+        <div id="targetsTab" class="sub-tab-panel">
+            <section class="averages-panel">
+                <h1 class="power-rankings-title" id="targetsTitle">🎯 Recruit Targets</h1>
+                <p class="leaderboard-hint power-rankings-hint">A 35-recruit target board built from your current roster, depth chart, and NIL situation &mdash; not just a generic top-recruits list. Every recruit is scored on positional need (factoring in graduating Juniors/Seniors), fit vs. your current players at that position, NIL cost-effectiveness, how interested they actually are in your program, and home-state/pipeline ties, plus your Coordinator Settings (Team Direction and Position Priorities). Fullbacks, Kickers, and Punters are excluded from the board entirely.</p>
+                <div class="settings-save-row">
+                    <button id="refreshTargetsBtn" class="refresh-btn">🔄 Refresh Recruit Targets</button>
+                    <span id="refreshTargetsStatus" class="upload-status"></span>
                 </div>
-                <div class="toolbar-group">
-                    <label for="rosterStartersOnly">Players</label>
-                    <select id="rosterStartersOnly">
-                        <option value="starters">Starters Only</option>
-                        <option value="all">Entire Roster</option>
-                    </select>
+
+                <details class="info-box">
+                    <summary>How this works &amp; why it matters</summary>
+                    <div class="info-box-body">
+                        <h4>What this page shows</h4>
+                        <p>This is the one page in the app that answers "who should I actually go sign," specifically for your team &mdash; not a generic top-recruits list, but 35 recruits selected and ranked by how well they fit your program right now. Every other tab shows you data; this tab turns it into a plan.</p>
+
+                        <h4>Position Need score</h4>
+                        <p>Every position gets a 0-100 need score, blended from three things:</p>
+                        <ul>
+                            <li><strong>Quality gap (45%)</strong> &mdash; how far your roster's average at that position sits below the national average (see National Landscape)</li>
+                            <li><strong>Succession risk (35%)</strong> &mdash; what fraction of your current starters there are Juniors or Seniors, about to graduate and need replacing</li>
+                            <li><strong>Depth deficiency (20%)</strong> &mdash; whether your roster even has a realistic number of bodies at that position, regardless of quality</li>
+                        </ul>
+                        <p>A position with zero rostered players (like a team carrying no Fullback) automatically maxes out at 100.</p>
+
+                        <h4>Talent and NIL value</h4>
+                        <p>Each recruit's Raw Rating and NIL Adjustment (from the Recruit Explorer tab) get converted to a percentile against every other eligible recruit nationally, so "talented" and "good NIL value" mean the same thing here as they do everywhere else in the app.</p>
+
+                        <h4>Interest and geography</h4>
+                        <p>Recruits already showing real interest in your specific program score higher &mdash; "Not on Radar" doesn't disqualify a recruit, it's just weighted lower, since a great enough fit can still be worth a longshot pursuit. Home-state recruits get the strongest geography bonus; recruits from one of your program's recruiting pipeline states get a smaller one scaled to how strong that pipeline actually is.</p>
+
+                        <h4>Gem/Bust status</h4>
+                        <p>On top of everything above, a "Gem" gets a further +8 and a "Bust" a further -8 directly on each tier's score (separate from, and larger than, Raw Rating's own small Gem bonus). Turn on "Ignore Gem/Bust Status" in Coordinator Settings to leave this out of scoring entirely and let a recruit stand purely on their measurables and fit; "Hide Gem/Bust Status" only hides the badge itself and doesn't change the score either way.</p>
+
+                        <h4>The three tiers use different formulas on purpose</h4>
+                        <ul>
+                            <li><strong>Day One Starters</strong> &mdash; must be 4-5&#9733; or a top-20 national position rank to even qualify. Talent and need dominate the score; these need to be immediate, obvious upgrades.</li>
+                            <li><strong>Program Movers</strong> &mdash; need, talent, NIL value, and interest are balanced fairly evenly. These are the realistic 1-2 year starters.</li>
+                            <li><strong>Foundational Players</strong> &mdash; NIL value and need are weighted heaviest, talent least. These are the affordable, longer-runway picks that keep the program's depth healthy 2-3 years out.</li>
+                        </ul>
+                        <p>Each tier also caps how many recruits can share the same position (1 for Day One, 2 for Program Movers, 3 for Foundational), so one gaping roster hole can't flood the whole board with recruits at a single spot.</p>
+
+                        <h4>Coordinator Settings shape this board</h4>
+                        <p>Your <strong>Team Direction</strong> setting changes how many of the 35 total slots go to each tier &mdash; Rebuild shifts most of the board toward Foundational Players, Compete Now shifts it toward Day One Starters and Program Movers, Maintain uses the even split above. It also gives each tier's own formula a small nudge: Rebuild leans a bit further from raw talent and toward long-term fit (NIL value / need); Compete Now leans the other way. Your <strong>Position Priorities</strong> add a small scoring bonus for recruits who excel (for their position) at your two selected ratings, a small bonus for matching one of your preferred archetypes, and a small penalty for matching the archetype you're avoiding. All of these are gentle nudges on top of the core scoring above &mdash; they break ties and reorder close calls, but never exclude a recruit outright. Hit "Refresh Recruit Targets" (here or on the Coordinator Settings tab) any time you change a setting to see the board update.</p>
+
+                        <h4>Why it matters</h4>
+                        <p>A generic "top 35 recruits" list is the same for every team in the league &mdash; it doesn't know your roster is thin at Safety, or that your starting Center is a graduating Senior, or that your program has a real pipeline in a specific state, or that you specifically want a Pass Protector at Right Guard instead of an Agile one. This board does. Work it top to bottom: Day One Starters first (your most urgent, highest-confidence needs), then Program Movers, then Foundational Players to round out the class affordably.</p>
+                    </div>
+                </details>
+
+                <div id="teamContextSummary" class="team-hero-wrap"></div>
+
+                <div id="targetsContainer">
+                    <p class="empty-row">Upload a save file to see recruit targets.</p>
                 </div>
-            </div>
-            <div id="tierLegend" class="tier-legend"></div>
-            <div class="table-wrap">
-                <table id="rosterTable">
-                    <thead>
-                        <tr>
-                            <th>Position</th><th>Class</th><th>Avg OVR</th>
-                            <th>Key Rating 1</th><th>Key Rating 2</th><th>Key Rating 3</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rosterBody"><tr><td colspan="6" class="empty-row">Load a save file in the Recruit Explorer tab to see the national landscape.</td></tr></tbody>
-                </table>
-            </div>
-        </section>
-    </div>
+            </section>
+        </div>
 
-    <div id="targetsTab" class="tab-panel">
-        <section class="averages-panel">
-            <h1 class="power-rankings-title" id="targetsTitle">🎯 Recruit Targets</h1>
-            <p class="leaderboard-hint power-rankings-hint">A 35-recruit target board built from your current roster, depth chart, and NIL situation &mdash; not just a generic top-recruits list. Every recruit is scored on positional need (factoring in graduating Juniors/Seniors), fit vs. your current players at that position, NIL cost-effectiveness, how interested they actually are in your program, and home-state/pipeline ties, plus your Coordinator Settings (Team Direction and Position Priorities). Fullbacks, Kickers, and Punters are excluded from the board entirely.</p>
-            <div class="settings-save-row">
-                <button id="refreshTargetsBtn" class="refresh-btn">🔄 Refresh Recruit Targets</button>
-                <span id="refreshTargetsStatus" class="upload-status"></span>
-            </div>
+        <div id="settingsTab" class="sub-tab-panel">
+            <section class="averages-panel">
+                <h1 class="power-rankings-title">⚙️ Coordinator Settings</h1>
+                <p class="leaderboard-hint power-rankings-hint">Tell the app what you're looking for when building your team. These preferences are saved in this browser and directly shape the Recruit Targets board. "Hide Gem/Bust Status" applies instantly everywhere; everything else (Team Direction, Position Priorities, "Ignore Gem/Bust Status") only takes effect on the Recruit Targets board once you hit "Refresh Recruit Targets" &mdash; though "Ignore" does update the Recruit Explorer tab's Raw/NIL Adj. Rating columns right away.</p>
 
-            <details class="info-box">
-                <summary>How this works &amp; why it matters</summary>
-                <div class="info-box-body">
-                    <h4>What this page shows</h4>
-                    <p>This is the one page in the app that answers "who should I actually go sign," specifically for your team &mdash; not a generic top-recruits list, but 35 recruits selected and ranked by how well they fit your program right now. Every other tab shows you data; this tab turns it into a plan.</p>
+                <h2>Team Direction</h2>
+                <p class="leaderboard-hint">Changes two things on the Recruit Targets board: how many of the 35 total slots go to each tier (Rebuild leans hardest into Foundational Players, Compete Now leans hardest into Day One Starters and Program Movers, Maintain is the even split), and a small nudge to each tier's own formula, away from raw talent and toward long-term fit (NIL value / need) for Rebuild, or the reverse for Compete Now.</p>
+                <div id="teamDirectionCards" class="direction-cards"></div>
 
-                    <h4>Position Need score</h4>
-                    <p>Every position gets a 0-100 need score, blended from three things:</p>
-                    <ul>
-                        <li><strong>Quality gap (45%)</strong> &mdash; how far your roster's average at that position sits below the national average (see National Landscape)</li>
-                        <li><strong>Succession risk (35%)</strong> &mdash; what fraction of your current starters there are Juniors or Seniors, about to graduate and need replacing</li>
-                        <li><strong>Depth deficiency (20%)</strong> &mdash; whether your roster even has a realistic number of bodies at that position, regardless of quality</li>
-                    </ul>
-                    <p>A position with zero rostered players (like a team carrying no Fullback) automatically maxes out at 100.</p>
-
-                    <h4>Talent and NIL value</h4>
-                    <p>Each recruit's Raw Rating and NIL Adjustment (from the Recruit Explorer tab) get converted to a percentile against every other eligible recruit nationally, so "talented" and "good NIL value" mean the same thing here as they do everywhere else in the app.</p>
-
-                    <h4>Interest and geography</h4>
-                    <p>Recruits already showing real interest in your specific program score higher &mdash; "Not on Radar" doesn't disqualify a recruit, it's just weighted lower, since a great enough fit can still be worth a longshot pursuit. Home-state recruits get the strongest geography bonus; recruits from one of your program's recruiting pipeline states get a smaller one scaled to how strong that pipeline actually is.</p>
-
-                    <h4>Gem/Bust status</h4>
-                    <p>On top of everything above, a "Gem" gets a further +8 and a "Bust" a further -8 directly on each tier's score (separate from, and larger than, Raw Rating's own small Gem bonus). Turn on "Ignore Gem/Bust Status" in Coordinator Settings to leave this out of scoring entirely and let a recruit stand purely on their measurables and fit; "Hide Gem/Bust Status" only hides the badge itself and doesn't change the score either way.</p>
-
-                    <h4>The three tiers use different formulas on purpose</h4>
-                    <ul>
-                        <li><strong>Day One Starters</strong> &mdash; must be 4-5&#9733; or a top-20 national position rank to even qualify. Talent and need dominate the score; these need to be immediate, obvious upgrades.</li>
-                        <li><strong>Program Movers</strong> &mdash; need, talent, NIL value, and interest are balanced fairly evenly. These are the realistic 1-2 year starters.</li>
-                        <li><strong>Foundational Players</strong> &mdash; NIL value and need are weighted heaviest, talent least. These are the affordable, longer-runway picks that keep the program's depth healthy 2-3 years out.</li>
-                    </ul>
-                    <p>Each tier also caps how many recruits can share the same position (1 for Day One, 2 for Program Movers, 3 for Foundational), so one gaping roster hole can't flood the whole board with recruits at a single spot.</p>
-
-                    <h4>Coordinator Settings shape this board</h4>
-                    <p>Your <strong>Team Direction</strong> setting changes how many of the 35 total slots go to each tier &mdash; Rebuild shifts most of the board toward Foundational Players, Compete Now shifts it toward Day One Starters and Program Movers, Maintain uses the even split above. It also gives each tier's own formula a small nudge: Rebuild leans a bit further from raw talent and toward long-term fit (NIL value / need); Compete Now leans the other way. Your <strong>Position Priorities</strong> add a small scoring bonus for recruits who excel (for their position) at your two selected ratings, a small bonus for matching one of your preferred archetypes, and a small penalty for matching the archetype you're avoiding. All of these are gentle nudges on top of the core scoring above &mdash; they break ties and reorder close calls, but never exclude a recruit outright. Hit "Refresh Recruit Targets" (here or on the Coordinator Settings tab) any time you change a setting to see the board update.</p>
-
-                    <h4>Why it matters</h4>
-                    <p>A generic "top 35 recruits" list is the same for every team in the league &mdash; it doesn't know your roster is thin at Safety, or that your starting Center is a graduating Senior, or that your program has a real pipeline in a specific state, or that you specifically want a Pass Protector at Right Guard instead of an Agile one. This board does. Work it top to bottom: Day One Starters first (your most urgent, highest-confidence needs), then Program Movers, then Foundational Players to round out the class affordably.</p>
+                <h2>Evaluation Preferences</h2>
+                <p class="leaderboard-hint">The game's own scouting sometimes flags a recruit as a "Gem" (likely to outperform their rating) or a "Bust" (likely to underperform). These two toggles are independent. <strong>Hide Gem/Bust Status</strong> only hides the badge, on the Recruit Explorer table and Recruit Targets cards alike &mdash; the rating math underneath is untouched. <strong>Ignore Gem/Bust Status</strong> is the opposite: the badge still shows (unless you've also hidden it), but the Gem/Bust adjustment is left out of Raw Rating, NIL Adj. Rating, and Recruit Targets scoring entirely.</p>
+                <div class="settings-toggle-row">
+                    <label class="toggle-switch-label" for="hideGemBustToggle">
+                        <span class="toggle-switch-text">Hide Gem/Bust Status</span>
+                        <input type="checkbox" id="hideGemBustToggle">
+                        <span class="toggle-track" aria-hidden="true"></span>
+                    </label>
+                    <label class="toggle-switch-label" for="ignoreGemBustToggle">
+                        <span class="toggle-switch-text">Ignore Gem/Bust Status</span>
+                        <input type="checkbox" id="ignoreGemBustToggle">
+                        <span class="toggle-track" aria-hidden="true"></span>
+                    </label>
                 </div>
-            </details>
 
-            <div id="teamContextSummary" class="team-hero-wrap"></div>
+                <h2>Position Priorities</h2>
+                <p class="leaderboard-hint">For every position except Fullback, Kicker, and Punter: pick the two ratings that matter most to you, up to two archetypes you'd prefer, and one archetype you'd rather steer away from. Archetypes are pulled directly from the game's own per-position player-type system. On the Recruit Targets board, a recruit gets a small scoring bonus for excelling (relative to others at their position) in your two selected ratings, a small bonus for matching either preferred archetype, and a small penalty for matching the archetype to avoid. None of this ever removes a recruit from consideration outright &mdash; a great overall fit for your team still shows up even if their archetype isn't one you picked.</p>
+                <div class="table-wrap">
+                    <table id="positionPrioritiesTable">
+                        <thead>
+                            <tr>
+                                <th>Position</th>
+                                <th>Priority Attribute 1</th>
+                                <th>Priority Attribute 2</th>
+                                <th>Preferred Archetype 1</th>
+                                <th>Preferred Archetype 2</th>
+                                <th>Avoid Archetype</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positionPrioritiesBody"></tbody>
+                    </table>
+                </div>
 
-            <div id="targetsContainer">
-                <p class="empty-row">Load a save file in the Recruit Explorer tab to see recruit targets.</p>
-            </div>
-        </section>
-    </div>
-
-    <div id="settingsTab" class="tab-panel">
-        <section class="averages-panel">
-            <h1 class="power-rankings-title">⚙️ Coordinator Settings</h1>
-            <p class="leaderboard-hint power-rankings-hint">Tell the app what you're looking for when building your team. These preferences are saved in this browser and directly shape the Recruit Targets board. "Hide Gem/Bust Status" applies instantly everywhere; everything else (Team Direction, Position Priorities, "Ignore Gem/Bust Status") only takes effect on the Recruit Targets board once you hit "Refresh Recruit Targets" &mdash; though "Ignore" does update the Recruit Explorer tab's Raw/NIL Adj. Rating columns right away.</p>
-
-            <h2>Team Direction</h2>
-            <p class="leaderboard-hint">Changes two things on the Recruit Targets board: how many of the 35 total slots go to each tier (Rebuild leans hardest into Foundational Players, Compete Now leans hardest into Day One Starters and Program Movers, Maintain is the even split), and a small nudge to each tier's own formula, away from raw talent and toward long-term fit (NIL value / need) for Rebuild, or the reverse for Compete Now.</p>
-            <div id="teamDirectionCards" class="direction-cards"></div>
-
-            <h2>Evaluation Preferences</h2>
-            <p class="leaderboard-hint">The game's own scouting sometimes flags a recruit as a "Gem" (likely to outperform their rating) or a "Bust" (likely to underperform). These two toggles are independent. <strong>Hide Gem/Bust Status</strong> only hides the badge, on the Recruit Explorer table and Recruit Targets cards alike &mdash; the rating math underneath is untouched. <strong>Ignore Gem/Bust Status</strong> is the opposite: the badge still shows (unless you've also hidden it), but the Gem/Bust adjustment is left out of Raw Rating, NIL Adj. Rating, and Recruit Targets scoring entirely.</p>
-            <div class="settings-toggle-row">
-                <label class="toggle-switch-label" for="hideGemBustToggle">
-                    <span class="toggle-switch-text">Hide Gem/Bust Status</span>
-                    <input type="checkbox" id="hideGemBustToggle">
-                    <span class="toggle-track" aria-hidden="true"></span>
-                </label>
-                <label class="toggle-switch-label" for="ignoreGemBustToggle">
-                    <span class="toggle-switch-text">Ignore Gem/Bust Status</span>
-                    <input type="checkbox" id="ignoreGemBustToggle">
-                    <span class="toggle-track" aria-hidden="true"></span>
-                </label>
-            </div>
-
-            <h2>Position Priorities</h2>
-            <p class="leaderboard-hint">For every position except Fullback, Kicker, and Punter: pick the two ratings that matter most to you, up to two archetypes you'd prefer, and one archetype you'd rather steer away from. Archetypes are pulled directly from the game's own per-position player-type system. On the Recruit Targets board, a recruit gets a small scoring bonus for excelling (relative to others at their position) in your two selected ratings, a small bonus for matching either preferred archetype, and a small penalty for matching the archetype to avoid. None of this ever removes a recruit from consideration outright &mdash; a great overall fit for your team still shows up even if their archetype isn't one you picked.</p>
-            <div class="table-wrap">
-                <table id="positionPrioritiesTable">
-                    <thead>
-                        <tr>
-                            <th>Position</th>
-                            <th>Priority Attribute 1</th>
-                            <th>Priority Attribute 2</th>
-                            <th>Preferred Archetype 1</th>
-                            <th>Preferred Archetype 2</th>
-                            <th>Avoid Archetype</th>
-                        </tr>
-                    </thead>
-                    <tbody id="positionPrioritiesBody"></tbody>
-                </table>
-            </div>
-
-            <div class="settings-save-row">
-                <button id="saveSettingsBtn" class="refresh-btn">💾 Save Settings</button>
-                <button id="refreshTargetsFromSettingsBtn" class="refresh-btn">🔄 Refresh Recruit Targets</button>
-                <button id="resetSettingsBtn" class="link-btn">Reset to defaults</button>
-                <span id="settingsSaveStatus" class="upload-status"></span>
-            </div>
-        </section>
+                <div class="settings-save-row">
+                    <button id="saveSettingsBtn" class="refresh-btn">💾 Save Settings</button>
+                    <button id="refreshTargetsFromSettingsBtn" class="refresh-btn">🔄 Refresh Recruit Targets</button>
+                    <button id="resetSettingsBtn" class="link-btn">Reset to defaults</button>
+                    <span id="settingsSaveStatus" class="upload-status"></span>
+                </div>
+            </section>
+        </div>
     </div>
 
     <div id="adminTab" class="tab-panel">

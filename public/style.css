@@ -1308,3 +1308,128 @@ tr.detail-row td {
 }
 
 .modal-primary-btn { width: 100%; text-align: center; }
+
+/* ---- Landing hero: the "nothing loaded yet" state, shown above the
+   upload panel until a save file loads successfully (see hideLandingHero()
+   in app.js). No photos - CSS-only football motifs (yard-line stripes, a
+   football-emoji divider) matching the app's existing custom-styled look
+   rather than stock photography, deliberately, to avoid any real-photo
+   licensing question on something meant to be monetized later. ---- */
+.landing-hero {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 40px 32px 34px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+.landing-hero.hidden { display: none; }
+
+.landing-hero-field {
+    position: relative;
+    padding: 8px 8px 0;
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+/* Subtle yard-line stripes + a faint green field wash behind the title -
+   texture without competing with the text on top of it. */
+.landing-hero-field::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(90deg, transparent 0px, transparent 58px, rgba(255, 255, 255, 0.04) 58px, rgba(255, 255, 255, 0.04) 60px),
+        linear-gradient(180deg, rgba(53, 196, 107, 0.09), transparent 75%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.landing-hero-yardline {
+    position: relative;
+    z-index: 1;
+    height: 1px;
+    width: 160px;
+    margin: 0 auto 20px;
+    background: linear-gradient(90deg, transparent, var(--accent-2) 25%, var(--accent-2) 75%, transparent);
+}
+.landing-hero-yardline::after {
+    content: '🏈';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--panel);
+    padding: 0 12px;
+    font-size: 19px;
+}
+
+.landing-hero-title {
+    position: relative;
+    z-index: 1;
+    font-family: 'Oswald', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    margin: 0 0 14px;
+    background: linear-gradient(90deg, var(--accent), #ffb199);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.landing-hero-tagline {
+    position: relative;
+    z-index: 1;
+    font-size: 14.5px;
+    color: var(--text-dim);
+    max-width: 620px;
+    margin: 0 auto;
+    line-height: 1.6;
+    padding-bottom: 6px;
+}
+
+.landing-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-top: 30px;
+    text-align: left;
+}
+
+.landing-step {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 18px;
+    position: relative;
+}
+
+.landing-step-icon { font-size: 24px; margin-bottom: 10px; }
+
+.landing-step-num {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--border);
+}
+
+.landing-step-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+}
+
+.landing-step-desc {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+    .landing-hero { padding: 28px 18px; }
+    .landing-hero-title { font-size: 23px; }
+}
