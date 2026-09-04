@@ -1182,9 +1182,11 @@ tr.detail-row td {
     font-size: 12.5px;
 }
 
-/* ---- Free-upload-limit modal (shown as a heads-up right after an
-   anonymous visitor's 3rd successful upload, and again if they try a 4th
-   without an account - see checkUploadLimit/freeUploadInfo in server.js) ---- */
+/* ---- Shared modal shell (.modal-overlay/.modal-card), used by both the
+   free-upload-limit modal (a heads-up right after an anonymous visitor's
+   3rd successful upload, and again if a 4th is blocked without an account
+   - see checkUploadLimit/freeUploadInfo in server.js) and the first-upload
+   welcome/overview modal below. ---- */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -1248,3 +1250,61 @@ tr.detail-row td {
 .modal-actions .link-btn { font-size: 13px; }
 
 .modal-dismiss { font-size: 12px; }
+
+/* ---- Welcome/overview modal (shown once, after someone's first-ever
+   successful upload - see maybeShowWelcomeModal() in app.js). Wider than
+   the default modal-card and left-aligned for the feature list, since a
+   short orientation tour doesn't read well centered like the shorter
+   single-message modals do. ---- */
+.modal-card-wide { max-width: 500px; }
+
+.modal-subhead {
+    font-size: 13.5px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin: 0 0 22px;
+}
+
+.welcome-feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.welcome-feature {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.welcome-feature-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    width: 28px;
+    text-align: center;
+}
+
+.welcome-feature-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 2px;
+}
+
+.welcome-feature-desc {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    line-height: 1.5;
+}
+.welcome-feature-desc strong { color: var(--text); }
+
+.modal-hint {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+    margin: 0 0 20px;
+}
+
+.modal-primary-btn { width: 100%; text-align: center; }

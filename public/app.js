@@ -83,6 +83,41 @@
         if (e.key === 'Escape' && accountModal && !accountModal.classList.contains('hidden')) hideAccountModal();
     });
 
+    // ---- Welcome/overview modal ----
+    // Shown once, right after someone's first-ever successful upload
+    // (either path: drag-and-drop/browse via uploadFile(), or the personal-
+    // mode "Refresh from Save File" button) - a quick "you're in, here's
+    // what's here" orientation, not a repeat-every-time thing. Remembered
+    // via localStorage rather than a server flag, since it's purely a
+    // per-browser UI nicety with no need to sync across devices/accounts.
+    const WELCOME_MODAL_SEEN_KEY = 'rc_welcome_seen_v1';
+    const welcomeModal = document.getElementById('welcomeModal');
+
+    function showWelcomeModal() {
+        if (welcomeModal) welcomeModal.classList.remove('hidden');
+    }
+    function hideWelcomeModal() {
+        if (welcomeModal) welcomeModal.classList.add('hidden');
+    }
+    function maybeShowWelcomeModal() {
+        let alreadySeen = true;
+        try { alreadySeen = localStorage.getItem(WELCOME_MODAL_SEEN_KEY) === 'true'; } catch (e) { /* storage inaccessible - treat as already seen rather than nagging every load */ }
+        if (alreadySeen) return;
+        try { localStorage.setItem(WELCOME_MODAL_SEEN_KEY, 'true'); } catch (e) { /* nothing to do if storage is blocked */ }
+        showWelcomeModal();
+    }
+
+    const welcomeModalClose = document.getElementById('welcomeModalClose');
+    const welcomeModalDismiss = document.getElementById('welcomeModalDismiss');
+    if (welcomeModalClose) welcomeModalClose.addEventListener('click', hideWelcomeModal);
+    if (welcomeModalDismiss) welcomeModalDismiss.addEventListener('click', hideWelcomeModal);
+    if (welcomeModal) welcomeModal.addEventListener('click', e => {
+        if (e.target === welcomeModal) hideWelcomeModal(); // clicked the backdrop, not the card
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && welcomeModal && !welcomeModal.classList.contains('hidden')) hideWelcomeModal();
+    });
+
     const PAGE_SIZE = 25;
 
     // Canonical display order for the Class Landscape table - offense,
@@ -313,6 +348,7 @@
             renderTopTeamsTable();
             renderPowerRankings();
             renderRecruitTargets();
+            maybeShowWelcomeModal();
 
             // First successful upload ever (no refresh path configured yet):
             // offer to remember this file's location so future updates are a
@@ -429,6 +465,7 @@
             renderTopTeamsTable();
             renderPowerRankings();
             renderRecruitTargets();
+            maybeShowWelcomeModal();
         } catch (err) {
             console.error(err);
             setStatus(err.message || 'Something went wrong refreshing from the save file.', 'error');
