@@ -1820,3 +1820,61 @@ tr.detail-row td {
         margin-top: 12px;
     }
 }
+
+/* ---- Scheme Fit (Recruiting Coordinator) ---- */
+.scheme-fit-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+}
+.scheme-fit-summary-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+}
+.scheme-fit-summary-label { color: var(--text-dim); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
+.scheme-fit-summary-value { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 22px; margin-bottom: 8px; }
+.scheme-fit-summary-hint { color: var(--text-dim); font-size: 12.5px; line-height: 1.5; }
+
+.scheme-fit-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.scheme-fit-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+}
+.scheme-fit-card.scheme-fit-top {
+    border-color: var(--accent);
+    background: rgba(255, 107, 53, 0.06);
+}
+
+.scheme-fit-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+.scheme-fit-rank { color: var(--text-dim); font-weight: 700; font-size: 13px; min-width: 28px; }
+.scheme-fit-name { font-weight: 700; font-size: 14.5px; }
+.scheme-fit-score { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--accent-2); font-weight: 700; font-size: 13px; }
+.scheme-fit-current-badge {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-dim);
+}
+.scheme-fit-desc { color: var(--text-dim); font-size: 12.5px; line-height: 1.5; margin: 0 0 6px; }
+.scheme-fit-reason { font-size: 12.5px; line-height: 1.5; margin: 0; }

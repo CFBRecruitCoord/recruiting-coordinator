@@ -36,6 +36,8 @@
                 loggedInRow.classList.add('hidden');
                 loggedOutRow.classList.remove('hidden');
             }
+
+            maybeShowTipJarModal();
         } catch (e) { /* request failed - leave hidden */ }
 
         if (logoutBtn) {
@@ -128,6 +130,65 @@
     });
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && welcomeModal && !welcomeModal.classList.contains('hidden')) hideWelcomeModal();
+    });
+
+    // ---- Tip jar modal ----
+    // Only ever checked from initAccountBar() above, so it's naturally
+    // scoped to hosted deployments (personal-mode local instances never
+    // call this). Gated on three things so it earns its interruption
+    // instead of nagging: (1) WELCOME_MODAL_SEEN_KEY being true means this
+    // browser has completed at least one real upload before - never ask
+    // someone who hasn't gotten any value from the tool yet; (2) a 14-day
+    // cooldown since it was last shown (set on every dismissal path, not
+    // just "Support") so a repeat visitor sees it occasionally, not on
+    // every single visit; (3) a permanent stop once they've actually
+    // followed the link through to the payment page - once someone's
+    // supported (or at least looked), there's no reason to keep asking.
+    // Shown after a short delay so it never competes with the initial page
+    // paint.
+    const TIP_JAR_LAST_SHOWN_KEY = 'rc_tipjar_last_shown_v1';
+    const TIP_JAR_DISMISSED_KEY = 'rc_tipjar_dismissed_forever_v1';
+    const TIP_JAR_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000;
+    const tipJarModal = document.getElementById('tipJarModal');
+
+    function showTipJarModal() {
+        if (tipJarModal) tipJarModal.classList.remove('hidden');
+    }
+    function hideTipJarModal() {
+        if (tipJarModal) tipJarModal.classList.add('hidden');
+    }
+    function recordTipJarShown() {
+        try { localStorage.setItem(TIP_JAR_LAST_SHOWN_KEY, String(Date.now())); } catch (e) { /* nothing to do if storage is blocked */ }
+    }
+    function maybeShowTipJarModal() {
+        if (!tipJarModal) return;
+        try {
+            if (localStorage.getItem(TIP_JAR_DISMISSED_KEY) === 'true') return;
+            if (localStorage.getItem(WELCOME_MODAL_SEEN_KEY) !== 'true') return;
+            const lastShown = Number(localStorage.getItem(TIP_JAR_LAST_SHOWN_KEY) || 0);
+            if (Date.now() - lastShown < TIP_JAR_COOLDOWN_MS) return;
+        } catch (e) { return; /* storage inaccessible - don't nag */ }
+        setTimeout(() => { recordTipJarShown(); showTipJarModal(); }, 1500);
+    }
+
+    const tipJarModalClose = document.getElementById('tipJarModalClose');
+    const tipJarLaterBtn = document.getElementById('tipJarLaterBtn');
+    const tipJarSupportBtn = document.getElementById('tipJarSupportBtn');
+    if (tipJarModalClose) tipJarModalClose.addEventListener('click', hideTipJarModal);
+    if (tipJarLaterBtn) tipJarLaterBtn.addEventListener('click', hideTipJarModal);
+    // The link itself already opens the Stripe page in a new tab - close
+    // the popup in this one too, and stop asking for good, since actually
+    // following the link through is a much stronger signal than a generic
+    // dismiss and there's no reason to keep interrupting them after that.
+    if (tipJarSupportBtn) tipJarSupportBtn.addEventListener('click', () => {
+        try { localStorage.setItem(TIP_JAR_DISMISSED_KEY, 'true'); } catch (e) { /* nothing to do if storage is blocked */ }
+        hideTipJarModal();
+    });
+    if (tipJarModal) tipJarModal.addEventListener('click', e => {
+        if (e.target === tipJarModal) hideTipJarModal(); // clicked the backdrop, not the card
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && tipJarModal && !tipJarModal.classList.contains('hidden')) hideTipJarModal();
     });
 
     const PAGE_SIZE = 25;
@@ -360,6 +421,7 @@
             renderTopTeamsTable();
             renderPowerRankings();
             renderRecruitTargets();
+            renderSchemeFit();
             hideLandingHero();
             loadCoachingCareer();
             loadCoachSummary();
@@ -486,6 +548,7 @@
             renderTopTeamsTable();
             renderPowerRankings();
             renderRecruitTargets();
+            renderSchemeFit();
             hideLandingHero();
             loadCoachingCareer();
             loadCoachSummary();
@@ -1532,6 +1595,224 @@
         CB: [['CB_MantoMan', 'Man to Man'], ['CB_HybridCorner', 'Hybrid Corner'], ['CB_Slot', 'Slot'], ['CB_Zone', 'Zone']],
         FS: S_ARCHETYPES, SS: S_ARCHETYPES
     };
+
+    // ================= SCHEME FIT (Recruiting Coordinator tab) =================
+    // Scores your current starters' real archetypes (same PlayerType field
+    // used throughout Coordinator Settings/Recruit Targets, via
+    // ARCHETYPES_BY_POSITION above) against every offensive and defensive
+    // scheme CFB 27 actually offers - the exact CurrentOffensiveScheme/
+    // CurrentDefensiveScheme enum values found on every team in the save,
+    // not an invented list (verified against all 143 teams). Each archetype
+    // carries a small set of real football traits; each scheme wants
+    // certain traits at certain position groups, and a starter earns points
+    // toward a scheme whenever their archetype's traits match what it wants
+    // at their spot - real football-scheme knowledge encoded once, not
+    // something the save file itself grades.
+    const ARCHETYPE_LABELS = {};
+    Object.values(ARCHETYPES_BY_POSITION).forEach(list => list.forEach(([value, label]) => { ARCHETYPE_LABELS[value] = label; }));
+
+    const ARCHETYPE_TAGS = {
+        QB_PureScrambler: ['mobile', 'speed'], QB_Scrambler: ['mobile'],
+        QB_FieldGeneral: ['pocket', 'accuracy'], QB_Improviser: ['mobile', 'accuracy'],
+
+        HB_ReceivingBack: ['receiving'], HB_ElusiveBack: ['elusive', 'speed'],
+        HB_PowerBlocking: ['power', 'blocking'], HB_ElusivePower: ['elusive', 'power'],
+        HB_PowerBack: ['power'], HB_PowerReceiving: ['power', 'receiving'],
+
+        WR_GadgetReceiver: ['elusive'], WR_Physical: ['power'],
+        WR_PhysicalBlocker: ['power', 'blocking'], WR_ShiftyRouteRunner: ['route', 'elusive'],
+        WR_PhysicalRouteRunner: ['route', 'power'], WR_Playmaker: ['elusive', 'route'],
+        WR_DeepThreat: ['vertical', 'speed'],
+
+        TE_PhysicalRouteRunner: ['route', 'power'], TE_VerticalThreat: ['vertical', 'speed'],
+        TE_Blocking: ['blocking'], TE_PossessionBlocking: ['possession', 'blocking'],
+        TE_Possession: ['possession'],
+
+        // OT/G/C all share the same 4 underlying concepts.
+        OT_Agile: ['passBlock', 'mobile'], G_Agile: ['passBlock', 'mobile'], C_Agile: ['passBlock', 'mobile'],
+        OT_WellRounded: ['versatile'], G_WellRounded: ['versatile'], C_WellRounded: ['versatile'],
+        OT_PassProtector: ['passBlock'], G_PassProtector: ['passBlock'], C_PassProtector: ['passBlock'],
+        OT_Power: ['power', 'runBlock'], G_Power: ['power', 'runBlock'], C_Power: ['power', 'runBlock'],
+
+        DE_PurePower: ['power', 'runStop'], DE_SmallerSpeedRusher: ['passRush', 'speed'],
+        DE_PowerRusher: ['passRush', 'power'], DE_RunStopper: ['runStop'],
+
+        DT_NoseTackle: ['nose', 'runStop'], DT_SpeedRusher: ['passRush', 'speed'],
+        DT_PurePower: ['power', 'runStop'], DT_PowerRusher: ['passRush', 'power'],
+
+        OLB_PassCoverage: ['coverage'], OLB_RunStopper: ['runStop'], OLB_PowerRusher: ['passRush', 'power'],
+        MLB_RunStopper: ['runStop'], MLB_FieldGeneral: ['versatile', 'coverage'], MLB_PassCoverage: ['coverage'],
+
+        CB_MantoMan: ['man'], CB_HybridCorner: ['hybrid'], CB_Slot: ['hybrid', 'coverage'], CB_Zone: ['zone'],
+        S_RunSupport: ['runStop'], S_Hybrid: ['hybrid'], S_Zone: ['zone']
+    };
+
+    // Which raw roster positions feed which scoring group - mirrors
+    // STARTER_SLOTS_BY_POSITION in lib/parseRosterLandscape.js (Fullback and
+    // specialists are excluded since none of the 19 real schemes hinge on
+    // them).
+    const SCHEME_POSITION_GROUPS = {
+        offense: { QB: ['QB'], HB: ['HB'], WR: ['WR'], TE: ['TE'], OL: ['LT', 'LG', 'C', 'RG', 'RT'] },
+        defense: { DL: ['LE', 'RE', 'DT'], LB: ['LOLB', 'MLB', 'ROLB'], DB: ['CB', 'FS', 'SS'] }
+    };
+
+    const OFFENSE_SCHEMES = [
+        { id: 'OFF_AIR_RAID', label: 'Air Raid', description: 'Fast-tempo spread passing attack built on quick, precise completions to stretch defenses horizontally and vertically.',
+            weights: { QB: { accuracy: 2, pocket: 1 }, HB: { receiving: 2 }, WR: { route: 2, elusive: 1 }, TE: { possession: 1 }, OL: { passBlock: 2 } } },
+        { id: 'OFF_MULTIPLE_OFFENSE', label: 'Multiple Offense', description: 'A do-everything system with no single identity - leans on whichever concepts your personnel supports best.',
+            weights: { QB: { accuracy: 1, mobile: 1 }, HB: { power: 1, receiving: 1 }, WR: { route: 1, vertical: 1 }, TE: { possession: 1, blocking: 1 }, OL: { versatile: 2 } } },
+        { id: 'OFF_OPTION', label: 'Option', description: 'Traditional run-first option attack built around a mobile quarterback reading the defense at the line.',
+            weights: { QB: { mobile: 2 }, HB: { power: 1, elusive: 1 }, WR: { power: 1 }, TE: { blocking: 2 }, OL: { runBlock: 2 } } },
+        { id: 'OFF_PISTOL', label: 'Pistol', description: 'Hybrid shotgun attack that blends spread passing concepts with a downhill run game.',
+            weights: { QB: { mobile: 2, accuracy: 1 }, HB: { power: 1, elusive: 1 }, WR: { vertical: 1, route: 1 }, TE: { blocking: 1, possession: 1 }, OL: { versatile: 1, runBlock: 1 } } },
+        { id: 'OFF_POWER_SPREAD', label: 'Power Spread', description: 'Spread formations built to feature power run concepts rather than the pass.',
+            weights: { QB: { mobile: 1, accuracy: 1 }, HB: { power: 2 }, WR: { power: 1 }, TE: { blocking: 1 }, OL: { runBlock: 2 } } },
+        { id: 'OFF_PRO_STYLE', label: 'Pro Style', description: 'Traditional, balanced attack built around a classic pocket passer and an even run/pass mix.',
+            weights: { QB: { pocket: 2, accuracy: 1 }, HB: { power: 1, receiving: 1 }, WR: { route: 1, power: 1 }, TE: { possession: 2 }, OL: { passBlock: 1, runBlock: 1 } } },
+        { id: 'OFF_RUN_AND_SHOOT', label: 'Run and Shoot', description: 'Pass-heavy spread system built on receiver option routes and high completion volume.',
+            weights: { QB: { accuracy: 2, mobile: 1 }, HB: { receiving: 2 }, WR: { route: 2, elusive: 1 }, TE: { possession: 1 }, OL: { passBlock: 2 } } },
+        { id: 'OFF_SPREAD', label: 'Spread', description: 'Formation-spacing offense that stretches the field to create room for skill-position speed.',
+            weights: { QB: { mobile: 1, accuracy: 1 }, HB: { elusive: 2 }, WR: { vertical: 1, route: 1 }, TE: { vertical: 1 }, OL: { versatile: 1 } } },
+        { id: 'OFF_SPREAD_OPTION', label: 'Spread Option', description: 'Zone-read spread attack built around a dual-threat quarterback and elusive backs.',
+            weights: { QB: { mobile: 2 }, HB: { elusive: 2 }, WR: { vertical: 1, power: 1 }, TE: { blocking: 1 }, OL: { mobile: 1, versatile: 1 } } },
+        { id: 'OFF_VEER_AND_SHOOT', label: 'Veer and Shoot', description: 'Hybrid triple-option run game mixed with occasional vertical shotgun passing shots.',
+            weights: { QB: { mobile: 2 }, HB: { elusive: 1, power: 1 }, WR: { vertical: 2 }, TE: { blocking: 1 }, OL: { runBlock: 1, versatile: 1 } } }
+    ];
+
+    const DEFENSE_SCHEMES = [
+        { id: 'DEF_3_2_6', label: '3-2-6 (Dime)', description: 'Six-defensive-back dime front built to blanket the pass against spread offenses.',
+            weights: { DL: { passRush: 2 }, LB: { coverage: 2 }, DB: { coverage: 2, zone: 1, hybrid: 1 } } },
+        { id: 'DEF_3_3_5', label: '3-3-5', description: 'Nickel-based front that trades a lineman for extra speed at linebacker and in coverage.',
+            weights: { DL: { nose: 1, passRush: 1 }, LB: { coverage: 1, runStop: 1 }, DB: { coverage: 2, hybrid: 1 } } },
+        { id: 'DEF_3_3_5_TITE', label: '3-3-5 Tite', description: '3-3-5 variant with a tighter defensive-line front for better gap control against the run.',
+            weights: { DL: { power: 1, runStop: 2 }, LB: { runStop: 1, coverage: 1 }, DB: { coverage: 1, hybrid: 1 } } },
+        { id: 'DEF_3_4_MULTIPLE', label: '3-4 Multiple', description: 'Versatile 3-4 that disguises looks with a two-gap nose and athletic, multi-purpose outside linebackers.',
+            weights: { DL: { nose: 2, power: 1 }, LB: { passRush: 1, runStop: 1 }, DB: { runStop: 1, hybrid: 1 } } },
+        { id: 'DEF_4_2_5', label: '4-2-5', description: 'Four-lineman, two-linebacker nickel front built for speed and coverage against modern spread attacks.',
+            weights: { DL: { passRush: 1, power: 1 }, LB: { coverage: 1, runStop: 1 }, DB: { coverage: 2, hybrid: 1 } } },
+        { id: 'DEF_4_3_MULTIPLE', label: '4-3 Multiple', description: 'Traditional 4-3 with the flexibility to disguise multiple looks pre-snap.',
+            weights: { DL: { runStop: 2, power: 1 }, LB: { runStop: 1, versatile: 1 }, DB: { hybrid: 1, man: 1 } } },
+        { id: 'DEF_BASE3_4', label: 'Base 3-4', description: 'Classic two-gap 3-4 built around a dominant nose tackle and pass-rushing outside linebackers.',
+            weights: { DL: { nose: 2, power: 2 }, LB: { passRush: 2 }, DB: { runStop: 1 } } },
+        { id: 'DEF_BASE4_3', label: 'Base 4-3', description: 'Classic four-lineman front built to control the run with a physical, downhill middle linebacker.',
+            weights: { DL: { runStop: 2, power: 1 }, LB: { runStop: 2 }, DB: { runStop: 1 } } },
+        { id: 'DEF_MULTIPLE_DEFENSE', label: 'Multiple Defense', description: 'A do-everything front with no single identity - leans on whichever fronts your personnel supports best.',
+            weights: { DL: { passRush: 1, runStop: 1 }, LB: { versatile: 1, coverage: 1, runStop: 1 }, DB: { hybrid: 2 } } }
+    ];
+
+    const SCHEME_LABELS = {};
+    [...OFFENSE_SCHEMES, ...DEFENSE_SCHEMES].forEach(s => { SCHEME_LABELS[s.id] = s.label; });
+
+    function buildStartersByGroup(starters, groupDef) {
+        const byGroup = {};
+        Object.entries(groupDef).forEach(([group, positions]) => {
+            byGroup[group] = starters.filter(p => positions.includes(p.position) && p.archetype);
+        });
+        return byGroup;
+    }
+
+    // Scores one scheme against the roster's starters, returning both the
+    // total and each contributing starter's own points (sorted highest
+    // first) so the UI can explain *why* a scheme ranked where it did.
+    function scoreSchemeForStarters(scheme, startersByGroup) {
+        let total = 0;
+        const contributions = [];
+        Object.entries(startersByGroup).forEach(([group, starters]) => {
+            const groupWeights = scheme.weights[group];
+            if (!groupWeights || !starters.length) return;
+            starters.forEach(p => {
+                const tags = ARCHETYPE_TAGS[p.archetype] || [];
+                let points = 0;
+                tags.forEach(tag => { if (groupWeights[tag]) points += groupWeights[tag]; });
+                if (points > 0) { total += points; contributions.push({ player: p, points }); }
+            });
+        });
+        contributions.sort((a, b) => b.points - a.points);
+        return { total, contributions };
+    }
+
+    function rankSchemes(schemes, startersByGroup) {
+        return schemes
+            .map(scheme => ({ scheme, ...scoreSchemeForStarters(scheme, startersByGroup) }))
+            .sort((a, b) => b.total - a.total);
+    }
+
+    function schemeReasonLine(contributions) {
+        if (!contributions.length) return 'No starters with a strong lean either way - your personnel is flexible enough here.';
+        return contributions.slice(0, 3)
+            .map(c => `${escapeHtml(c.player.name)} (${escapeHtml(ARCHETYPE_LABELS[c.player.archetype] || c.player.archetype)})`)
+            .join(', ') + ' fit this scheme well.';
+    }
+
+    function schemeCard(ranked, rank, currentSchemeId) {
+        const { scheme, total, contributions } = ranked;
+        return `
+            <div class="scheme-fit-card${rank === 0 ? ' scheme-fit-top' : ''}">
+                <div class="scheme-fit-card-header">
+                    <span class="scheme-fit-rank">#${rank + 1}</span>
+                    <span class="scheme-fit-name">${escapeHtml(scheme.label)}</span>
+                    ${scheme.id === currentSchemeId ? '<span class="scheme-fit-current-badge">Currently Running</span>' : ''}
+                    <span class="scheme-fit-score">${total} pts</span>
+                </div>
+                <p class="scheme-fit-desc">${escapeHtml(scheme.description)}</p>
+                <p class="scheme-fit-reason">${schemeReasonLine(contributions)}</p>
+            </div>
+        `;
+    }
+
+    // Pure function of already-loaded roster/team data (same pattern as
+    // Recruit Targets) - no fetch, recomputed in place after every
+    // upload/refresh.
+    function renderSchemeFit() {
+        const container = document.getElementById('schemeFitContainer');
+        if (!container) return;
+
+        if (!userTeamContext) {
+            container.innerHTML = '<p class="empty-row">No human-controlled team detected in this save - Scheme Fit needs to know which program to build for.</p>';
+            return;
+        }
+
+        const myStarters = allRosterPlayers.filter(p => p.teamIndex === userTeamContext.teamIndex && p.isStarter);
+        if (!myStarters.length) {
+            container.innerHTML = '<p class="empty-row">Upload a save file to see your scheme fit.</p>';
+            return;
+        }
+
+        const offenseStarters = buildStartersByGroup(myStarters, SCHEME_POSITION_GROUPS.offense);
+        const defenseStarters = buildStartersByGroup(myStarters, SCHEME_POSITION_GROUPS.defense);
+        const offenseRanked = rankSchemes(OFFENSE_SCHEMES, offenseStarters);
+        const defenseRanked = rankSchemes(DEFENSE_SCHEMES, defenseStarters);
+
+        const currentOff = userTeamContext.currentOffensiveScheme;
+        const currentDef = userTeamContext.currentDefensiveScheme;
+        const topOff = offenseRanked[0];
+        const topDef = defenseRanked[0];
+
+        container.innerHTML = `
+            <div class="scheme-fit-summary">
+                <div class="scheme-fit-summary-card">
+                    <div class="scheme-fit-summary-label">Currently Running (Offense)</div>
+                    <div class="scheme-fit-summary-value">${escapeHtml(SCHEME_LABELS[currentOff] || currentOff || 'Unknown')}</div>
+                    <div class="scheme-fit-summary-hint">${currentOff !== topOff.scheme.id
+                        ? `Your personnel fits <strong>${escapeHtml(topOff.scheme.label)}</strong> best (${topOff.total} pts).`
+                        : 'This is also your best personnel fit.'}</div>
+                </div>
+                <div class="scheme-fit-summary-card">
+                    <div class="scheme-fit-summary-label">Currently Running (Defense)</div>
+                    <div class="scheme-fit-summary-value">${escapeHtml(SCHEME_LABELS[currentDef] || currentDef || 'Unknown')}</div>
+                    <div class="scheme-fit-summary-hint">${currentDef !== topDef.scheme.id
+                        ? `Your personnel fits <strong>${escapeHtml(topDef.scheme.label)}</strong> best (${topDef.total} pts).`
+                        : 'This is also your best personnel fit.'}</div>
+                </div>
+            </div>
+
+            <h2>Offensive Scheme Ranking</h2>
+            <div class="scheme-fit-list">${offenseRanked.map((r, i) => schemeCard(r, i, currentOff)).join('')}</div>
+
+            <h2>Defensive Scheme Ranking</h2>
+            <div class="scheme-fit-list">${defenseRanked.map((r, i) => schemeCard(r, i, currentDef)).join('')}</div>
+        `;
+    }
 
     function getDefaultSettings() {
         const positions = {};

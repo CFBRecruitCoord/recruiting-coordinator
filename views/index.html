@@ -26,9 +26,10 @@
                 <a href="/signup.html" class="link-btn">Sign Up</a>
             </div>
             <a href="/feedback.html" class="link-btn">💬 Leave Comment / Report Bug</a>
+            <a href="https://buy.stripe.com/4gM7sLffD03h2gsc2v7wA00" target="_blank" rel="noopener noreferrer" class="link-btn">☕ Support the Developer</a>
         </div>
         <h1>🏈 Dynasty Coordinator</h1>
-        <p class="subtitle">The dynasty companion CFB 27 doesn't give you &mdash; a recruiting board built from your actual roster, national rankings and awards the game won't remember, and a permanent record of your program's entire history.</p>
+        <p class="subtitle">The dynasty companion CFB 27 doesn't give you &mdash; recruiting, rankings, and a permanent record of your program.</p>
     </header>
 
     <section id="landingHero" class="landing-hero">
@@ -115,6 +116,7 @@
             <button class="sub-tab-btn active" data-subtab="explorerSubTab">📋 Recruit Explorer</button>
             <button class="sub-tab-btn" data-subtab="classLandscapeSubTab">📊 Class Landscape</button>
             <button class="sub-tab-btn" data-subtab="targetsTab">🎯 Recruit Targets</button>
+            <button class="sub-tab-btn" data-subtab="schemeFitTab">🧠 Scheme Fit</button>
             <button class="sub-tab-btn" data-subtab="settingsTab">⚙️ Coordinator Settings</button>
         </div>
 
@@ -313,7 +315,8 @@
                         <p>Each tier also caps how many recruits can share the same position (1 for Day One, 2 for Program Movers, 3 for Foundational), so one gaping roster hole can't flood the whole board with recruits at a single spot.</p>
 
                         <h4>Coordinator Settings shape this board</h4>
-                        <p>Your <strong>Team Direction</strong> setting changes how many of the 35 total slots go to each tier &mdash; Rebuild shifts most of the board toward Foundational Players, Compete Now shifts it toward Day One Starters and Program Movers, Maintain uses the even split above. It also gives each tier's own formula a small nudge: Rebuild leans a bit further from raw talent and toward long-term fit (NIL value / need); Compete Now leans the other way. Your <strong>Position Priorities</strong> add a small scoring bonus for recruits who excel (for their position) at your two selected ratings, a small bonus for matching one of your preferred archetypes, and a small penalty for matching the archetype you're avoiding. All of these are gentle nudges on top of the core scoring above &mdash; they break ties and reorder close calls, but never exclude a recruit outright. Hit "Refresh Recruit Targets" (here or on the Coordinator Settings tab) any time you change a setting to see the board update.</p>
+                        <p>Your <strong>Team Direction</strong> setting changes how many of the 35 slots go to each tier (Rebuild leans toward Foundational Players, Compete Now leans toward Day One Starters and Program Movers, Maintain splits evenly), and nudges each tier's formula slightly toward long-term fit for Rebuild or raw talent for Compete Now.</p>
+                        <p>Your <strong>Position Priorities</strong> add a small bonus for excelling at your two selected ratings or matching a preferred archetype, and a small penalty for the archetype you're avoiding. These are gentle tie-breakers, not hard filters &mdash; a great overall fit still shows up regardless. Changes take effect after you hit "Refresh Recruit Targets."</p>
 
                         <h4>Why it matters</h4>
                         <p>A generic "top 35 recruits" list is the same for every team in the league &mdash; it doesn't know your roster is thin at Safety, or that your starting Center is a graduating Senior, or that your program has a real pipeline in a specific state, or that you specifically want a Pass Protector at Right Guard instead of an Agile one. This board does. Work it top to bottom: Day One Starters first (your most urgent, highest-confidence needs), then Program Movers, then Foundational Players to round out the class affordably.</p>
@@ -324,6 +327,29 @@
 
                 <div id="targetsContainer">
                     <p class="empty-row">Upload a save file to see recruit targets.</p>
+                </div>
+            </section>
+        </div>
+
+        <div id="schemeFitTab" class="sub-tab-panel">
+            <section class="averages-panel">
+                <h1 class="power-rankings-title">🧠 Scheme Fit</h1>
+                <p class="leaderboard-hint power-rankings-hint">Which offensive and defensive schemes actually fit your current starters, based on their real archetypes &mdash; not a generic "best scheme" list, but one scored against your own personnel.</p>
+
+                <details class="info-box">
+                    <summary>How this works &amp; why it matters</summary>
+                    <div class="info-box-body">
+                        <h4>What this page shows</h4>
+                        <p>Every one of CFB 27's 10 offensive and 9 defensive schemes, ranked by how well your current starters' archetypes fit each one. "Starters" uses the exact same definition as the rest of the app (top player by Overall at each starting spot) - the same 1 QB, 1 HB, 3 WR, 1 TE, and 5 offensive linemen on offense, and 3 defensive linemen, 3 linebackers, and 4 defensive backs on defense.</p>
+                        <h4>How the score works</h4>
+                        <p>Each archetype (Field General, Power Back, Speed Rusher, Zone corner, and so on) carries a small set of real football traits - mobility, accuracy, power, coverage ability, pass rush, and the like. Each scheme wants specific traits at specific position groups (Air Raid wants an accurate pocket passer and pass-protecting linemen; a Base 3-4 wants a true nose tackle and pass-rushing outside linebackers). A starter earns points toward a scheme whenever their archetype's traits match what that scheme is looking for at their position - so the ranking reflects your actual roster, not a generic tier list.</p>
+                        <h4>Why it matters</h4>
+                        <p>The game lets you run any scheme regardless of who you've recruited, but personnel that doesn't fit the scheme underperforms its ratings. This tells you whether it's worth switching your playbook to match the roster you've actually built, or recruiting toward the scheme you're already running.</p>
+                    </div>
+                </details>
+
+                <div id="schemeFitContainer">
+                    <p class="empty-row">Upload a save file to see your scheme fit.</p>
                 </div>
             </section>
         </div>
@@ -415,7 +441,7 @@
                     <h4>Defensive Rank</h4>
                     <p>An even blend of yards allowed, passing yards allowed, rushing yards allowed, and points allowed (lower is better on all four), plus sacks, interceptions, and fumble recoveries (higher is better). Before Week 1, this is projected from Defensive/Defensive Line/Linebacker/Defensive Back ratings instead.</p>
                     <h4>Historical weeks</h4>
-                    <p>Every upload/refresh saves that exact week's poll, so the search below grows the more you play. A completed season also gets a "Final" entry even if you never uploaded mid-season, since the save retains full-season stat totals for the last several years &mdash; but poll ranks (Media/Coaches/CFP/Coordinator 25) aren't retained for a season that finished before you started tracking, only Offense/Defense stay available there since those come from the save's own season-total stat cache instead.</p>
+                    <p>Every upload/refresh saves that exact week's poll, so the search below grows the more you play. A completed season also gets a "Final" entry even without a mid-season upload, since the save keeps full-season stat totals for the last several years. That backfilled entry only has Offense/Defense Rank, though &mdash; poll ranks (Media/Coaches/CFP/Coordinator 25) aren't retained for a season that finished before you started tracking.</p>
                 </div>
             </details>
 
@@ -1423,6 +1449,19 @@
         </div>
         <p class="modal-hint">Every tab has its own "How this works &amp; why it matters" box with more detail, right at the top.</p>
         <button id="welcomeModalDismiss" class="refresh-btn modal-primary-btn">Got it, let's go</button>
+    </div>
+</div>
+
+<div id="tipJarModal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <button id="tipJarModalClose" class="modal-close" aria-label="Close">&times;</button>
+        <div class="modal-icon">☕</div>
+        <h2>Enjoying Dynasty Coordinator?</h2>
+        <p class="modal-subhead">It's free to use and always will be. If it's added something to your dynasty, a tip helps cover hosting and keeps new features coming &mdash; no pressure either way.</p>
+        <div class="modal-actions">
+            <a id="tipJarSupportBtn" href="https://buy.stripe.com/4gM7sLffD03h2gsc2v7wA00" target="_blank" rel="noopener noreferrer" class="refresh-btn">☕ Buy Me a Coffee</a>
+            <button id="tipJarLaterBtn" class="link-btn">Maybe later</button>
+        </div>
     </div>
 </div>
 
