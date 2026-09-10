@@ -296,6 +296,30 @@
     let allRecruits = [];
     let allRosterPlayers = [];
     let userTeamContext = null;
+
+    // ---- Dynamic favicon ----
+    // /favicon.svg (linked in the <head>) is the default brand-colored
+    // shield shown before any save is loaded. Once a save reveals which
+    // team you're actually coaching, this swaps the tab icon to that same
+    // shield in the team's own colors (fill/text pairing matches
+    // teamSwatch()'s convention elsewhere in the app) - a data: URI, not a
+    // second file, since it has to be built fresh per team/session rather
+    // than served statically.
+    const DEFAULT_FAVICON_COLORS = { colorPrimary: '#0f1420', colorSecondary: '#ff6b35' };
+    function buildFaviconSvg(colorPrimary, colorSecondary) {
+        const fill = colorPrimary || DEFAULT_FAVICON_COLORS.colorPrimary;
+        const text = colorSecondary || DEFAULT_FAVICON_COLORS.colorSecondary;
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">`
+            + `<path d="M8 6 L56 6 L56 34 Q56 54 32 60 Q8 54 8 34 Z" fill="${fill}" stroke="${text}" stroke-width="2"/>`
+            + `<text x="32" y="41" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="${text}">DC</text>`
+            + `</svg>`;
+    }
+    function updateFaviconForTeam(team) {
+        const link = document.getElementById('faviconLink');
+        if (!link) return;
+        link.href = 'data:image/svg+xml,' + encodeURIComponent(buildFaviconSvg(team && team.colorPrimary, team && team.colorSecondary));
+    }
+
     let filteredSorted = [];
     let currentPage = 0;
     let sortKey = 'nilAdjustedRating';
@@ -410,6 +434,7 @@
             allRecruits = data.recruits;
             allRosterPlayers = data.roster || [];
             userTeamContext = data.userTeam || null;
+            updateFaviconForTeam(userTeamContext);
             recomputeEffectiveRatings();
             setStatus(`Loaded ${data.count} recruits and ${data.rosterCount || 0} rostered players from ${file.name}.`, 'success');
             resultsPanel.classList.remove('hidden');
@@ -537,6 +562,7 @@
             allRecruits = data.recruits;
             allRosterPlayers = data.roster || [];
             userTeamContext = data.userTeam || null;
+            updateFaviconForTeam(userTeamContext);
             recomputeEffectiveRatings();
             setStatus(`Loaded ${data.count} recruits and ${data.rosterCount || 0} rostered players from the configured save file.`, 'success');
             resultsPanel.classList.remove('hidden');

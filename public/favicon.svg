@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<path d="M8 6 L56 6 L56 34 Q56 54 32 60 Q8 54 8 34 Z" fill="#0f1420" stroke="#ff6b35" stroke-width="2"/>
+<text x="32" y="41" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#ff6b35">DC</text>
+</svg>
