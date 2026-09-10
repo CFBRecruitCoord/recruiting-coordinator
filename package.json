@@ -16,7 +16,9 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "cities.json": "^1.1.61",
     "cookie-parser": "^1.4.7",
+    "d3-geo": "^3.1.1",
     "express": "^5.2.1",
     "madden-franchise": "^4.3.6",
     "multer": "^2.3.0"

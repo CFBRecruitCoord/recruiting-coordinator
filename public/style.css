@@ -105,6 +105,17 @@ body {
     margin-bottom: 32px;
 }
 
+/* Same reset entry point as Coordinator Settings' Danger Zone, surfaced
+   here too since "just started a new dynasty" is exactly the moment
+   someone's looking at the upload controls, not necessarily digging
+   through Settings. */
+.upload-panel-footer {
+    text-align: right;
+    margin-top: 10px;
+}
+.start-new-dynasty-link { color: var(--text-dim); }
+.start-new-dynasty-link:hover { color: var(--bust); }
+
 .leaderboard-hint {
     color: var(--text-dim);
     font-size: 13px;
@@ -891,6 +902,92 @@ tr.detail-row td {
     margin: 0 0 8px;
 }
 
+.coach-summary-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.coach-summary-timeline-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    padding: 4px 12px 4px 6px;
+    font-size: 12.5px;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.coach-summary-timeline-chip.current {
+    border-color: rgba(255, 255, 255, 0.55);
+    font-weight: 700;
+}
+
+.coach-summary-timeline-arrow {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
+}
+
+.danger-zone-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: rgba(229, 72, 77, 0.08);
+    border: 1px solid rgba(229, 72, 77, 0.4);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-top: 12px;
+}
+.danger-zone-text strong { display: block; font-size: 14px; margin-bottom: 4px; }
+.danger-zone-text p { margin: 0; font-size: 12.5px; color: var(--text-dim); line-height: 1.5; max-width: 560px; }
+
+.danger-btn {
+    background: rgba(229, 72, 77, 0.15);
+    border: 1px solid var(--bust);
+    color: var(--bust);
+    font-weight: 700;
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.danger-btn:hover:not(:disabled) { background: var(--bust); color: #1a0f08; }
+.danger-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.reset-confirm-field { margin-bottom: 18px; text-align: left; }
+.reset-confirm-field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+.reset-confirm-field input {
+    width: 100%;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.reset-confirm-field input:focus { border-color: var(--bust); outline: none; }
+
+#coachSummaryStats .hero-stat-value small {
+    display: block;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-dim);
+    text-transform: none;
+    letter-spacing: normal;
+    margin-top: 2px;
+}
+
 .hero-stat-card {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -1591,7 +1688,8 @@ tr.detail-row td {
     margin-bottom: 16px;
 }
 
-#usMap {
+#usMap,
+#recruitingSigningMap {
     width: 100%;
     height: auto;
     display: block;
@@ -1639,6 +1737,25 @@ tr.detail-row td {
     r: 5;
     stroke: #ffb199;
     stroke-width: 1.25;
+}
+
+/* One dot per signee on the Recruiting Classes "Signing Map" - color comes
+   from that signee's own school (inline style, since it varies per-dynasty
+   and per-school rather than being a fixed CSS value like the school-marker
+   dots above). Signees who share an exact point (same hometown, or the same
+   state-centroid fallback) are nudged into a small ring by
+   jitterSigningMapPoints() in app.js so every one stays independently
+   clickable. */
+.signing-map-marker {
+    stroke-width: 1;
+    cursor: pointer;
+    transition: r 0.1s ease;
+}
+.signing-map-marker:hover,
+.signing-map-marker.signing-map-marker-active {
+    r: 6;
+    stroke: #ffb199;
+    stroke-width: 1.5;
 }
 
 .us-map-popup {

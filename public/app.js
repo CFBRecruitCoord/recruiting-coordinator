@@ -362,6 +362,7 @@
             renderRecruitTargets();
             hideLandingHero();
             loadCoachingCareer();
+            loadCoachSummary();
             loadRecruitingClasses();
             loadNotablePlayers();
             loadTop25();
@@ -487,6 +488,7 @@
             renderRecruitTargets();
             hideLandingHero();
             loadCoachingCareer();
+            loadCoachSummary();
             loadRecruitingClasses();
             loadNotablePlayers();
             loadTop25();
@@ -522,7 +524,7 @@
             // independent of whatever's been uploaded this session - also
             // reloaded after every successful upload (see uploadFile/refreshBtn)
             // so it stays current without needing a dedicated refresh button.
-            if (btn.dataset.tab === 'coachingCareerTab') { loadCoachingCareer(); loadRecruitingClasses(); loadNotablePlayers(); }
+            if (btn.dataset.tab === 'coachingCareerTab') { loadCoachingCareer(); loadCoachSummary(); loadRecruitingClasses(); loadNotablePlayers(); }
             if (btn.dataset.tab === 'nationalTab') { loadTop25(); loadConfStandings(); loadAwards(); loadAllAmericans(); }
         });
     });
@@ -2449,6 +2451,10 @@
             allRecruitingClasses = await classesRes.json();
             renderRecruitingClasses(allRecruitingClasses);
             if (careerRes.ok) renderRecruitingCareerStats(await careerRes.json());
+
+            populateRecruitingMapYearSelect(allRecruitingClasses);
+            const mapYearSelect = document.getElementById('recruitingMapYearSelect');
+            renderSigningMap(allRecruitingClasses, mapYearSelect ? mapYearSelect.value : 'all');
         } catch (err) {
             console.error(err);
             const body = document.getElementById('recruitingClassesBody');
@@ -2489,6 +2495,189 @@
         recruitingClassesSchoolSelect.addEventListener('change', () => {
             const val = recruitingClassesSchoolSelect.value;
             loadRecruitingClasses(val === '' ? null : Number(val));
+        });
+    }
+
+    // ---- Recruiting Classes: Signing Map ----
+    // Plots every signee's hometown (city-level when the save's home-town
+    // field resolves against the bundled US city gazetteer, state-centroid
+    // otherwise - see lib/signingMapGeo.js) colored by the school they
+    // signed with. Reuses the exact same #usMap state outlines/projection
+    // as the Rivalries & Records map (cloned once into a second <svg> here)
+    // rather than a second copy of ~950 lines of static path data.
+    let currentSigningMapSignees = [];
+    let signingMapPinnedEl = null;
+
+    function buildSigningMapBase() {
+        const target = document.getElementById('recruitingSigningMap');
+        const source = document.getElementById('usMap');
+        if (!target || !source || target.dataset.built) return;
+        target.dataset.built = 'true';
+
+        source.querySelectorAll('.us-state').forEach(pathEl => {
+            const clone = pathEl.cloneNode(true);
+            target.appendChild(clone);
+            clone.addEventListener('mouseenter', () => { if (!signingMapPinnedEl) showSigningMapStatePopup(clone); });
+            clone.addEventListener('mouseleave', () => { if (!signingMapPinnedEl) hideSigningMapPopup(); });
+            clone.addEventListener('click', () => {
+                if (signingMapPinnedEl === clone) { hideSigningMapPopup(); return; }
+                signingMapPinnedEl = clone;
+                showSigningMapStatePopup(clone);
+            });
+        });
+
+        const markerGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        markerGroup.setAttribute('id', 'recruitingSigningMarkers');
+        target.appendChild(markerGroup);
+    }
+
+    function hideSigningMapPopup() {
+        const popup = document.getElementById('recruitingMapPopup');
+        if (popup) popup.classList.add('hidden');
+        document.querySelectorAll('#recruitingSigningMap .us-state').forEach(p => p.classList.remove('us-state-active'));
+        document.querySelectorAll('.signing-map-marker').forEach(m => m.classList.remove('signing-map-marker-active'));
+        signingMapPinnedEl = null;
+    }
+
+    function showSigningMapPlayerPopup(circleEl) {
+        const popup = document.getElementById('recruitingMapPopup');
+        const popupTitle = document.getElementById('recruitingMapPopupTitle');
+        const popupBody = document.getElementById('recruitingMapPopupBody');
+        if (!popup || !popupTitle || !popupBody) return;
+        const d = circleEl.dataset;
+
+        popupTitle.textContent = d.name;
+        popupBody.innerHTML = `
+            <div class="us-map-popup-school">
+                <div>
+                    <div class="us-map-popup-school-name">${escapeHtml(d.team || 'Unknown School')}</div>
+                    <div class="us-map-popup-school-detail">${escapeHtml(d.position || '')} &middot; ${starString(Number(d.stars) || 0)} &middot; Overall ${d.overall || '&mdash;'}</div>
+                    <div class="us-map-popup-school-detail">${escapeHtml(d.hometown || '')}${d.hometown && d.homestate ? ', ' : ''}${escapeHtml(d.homestate || '')}${d.precision === 'state' ? ' (approximate)' : ''}</div>
+                </div>
+                <div class="us-map-popup-record">${toCalendarYear(Number(d.classyear))}</div>
+            </div>
+        `;
+        popup.classList.remove('hidden');
+        document.querySelectorAll('#recruitingSigningMap .us-state').forEach(p => p.classList.remove('us-state-active'));
+        document.querySelectorAll('.signing-map-marker').forEach(m => m.classList.remove('signing-map-marker-active'));
+        circleEl.classList.add('signing-map-marker-active');
+    }
+
+    function showSigningMapStatePopup(pathEl) {
+        const popup = document.getElementById('recruitingMapPopup');
+        const popupTitle = document.getElementById('recruitingMapPopupTitle');
+        const popupBody = document.getElementById('recruitingMapPopupBody');
+        if (!popup || !popupTitle || !popupBody) return;
+
+        const stateName = pathEl.dataset.name;
+        const signees = currentSigningMapSignees
+            .filter(s => s.homeState === stateName)
+            .slice()
+            .sort((a, b) => (b.overall || 0) - (a.overall || 0));
+
+        popupTitle.textContent = stateName;
+        popupBody.innerHTML = signees.length
+            ? signees.map(s => `
+                <div class="us-map-popup-school">
+                    <div>
+                        <div class="us-map-popup-school-name">${teamSwatch(s.team)} ${escapeHtml(s.name)}</div>
+                        <div class="us-map-popup-school-detail">${escapeHtml(s.position || '')} &middot; ${starString(s.stars)} &middot; ${escapeHtml(s.hometown || '')}</div>
+                    </div>
+                    <div class="us-map-popup-record">${toCalendarYear(s.classYear)}</div>
+                </div>
+            `).join('')
+            : '<p class="empty-row">No signees from this state in the current view.</p>';
+        popup.classList.remove('hidden');
+        document.querySelectorAll('.signing-map-marker').forEach(m => m.classList.remove('signing-map-marker-active'));
+        document.querySelectorAll('#recruitingSigningMap .us-state').forEach(p => p.classList.remove('us-state-active'));
+        pathEl.classList.add('us-state-active');
+    }
+
+    // Multiple signees can resolve to the exact same point (identical
+    // hometown, or the same state-centroid fallback when a city isn't in
+    // the gazetteer) - nudges duplicates at a shared point into a small
+    // ring around it so every one stays visible and independently
+    // clickable instead of stacking invisibly on top of each other.
+    function jitterSigningMapPoints(signees) {
+        const groups = new Map();
+        signees.forEach(s => {
+            const key = `${s.geo.x.toFixed(1)},${s.geo.y.toFixed(1)}`;
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(s);
+        });
+        groups.forEach(group => {
+            if (group.length === 1) {
+                group[0].mapX = group[0].geo.x;
+                group[0].mapY = group[0].geo.y;
+                return;
+            }
+            const radius = 5;
+            group.forEach((s, i) => {
+                const angle = (2 * Math.PI * i) / group.length;
+                s.mapX = s.geo.x + radius * Math.cos(angle);
+                s.mapY = s.geo.y + radius * Math.sin(angle);
+            });
+        });
+    }
+
+    function renderSigningMap(classes, yearFilter) {
+        buildSigningMapBase();
+        hideSigningMapPopup();
+        const markerGroup = document.getElementById('recruitingSigningMarkers');
+        if (!markerGroup) return;
+
+        const included = yearFilter === 'all' || yearFilter == null
+            ? classes
+            : classes.filter(c => String(c.classYear) === String(yearFilter));
+
+        const signees = included.flatMap(c => c.signees
+            .filter(s => s.geo)
+            .map(s => ({ ...s, team: c.team, classYear: c.classYear })));
+
+        jitterSigningMapPoints(signees);
+        currentSigningMapSignees = signees;
+
+        markerGroup.innerHTML = signees.map(s => {
+            const fill = (s.team && s.team.colorPrimary) || '#4b8bf5';
+            const stroke = (s.team && s.team.colorSecondary) || 'var(--bg)';
+            return `<circle class="signing-map-marker" cx="${s.mapX.toFixed(2)}" cy="${s.mapY.toFixed(2)}" r="4"
+                style="fill:${fill}; stroke:${stroke};"
+                data-name="${escapeHtml(s.name)}" data-position="${escapeHtml(s.position || '')}"
+                data-stars="${s.stars || ''}" data-overall="${s.overall != null ? s.overall : ''}"
+                data-hometown="${escapeHtml(s.hometown || '')}" data-homestate="${escapeHtml(s.homeState || '')}"
+                data-team="${escapeHtml(s.team ? s.team.name : '')}" data-classyear="${s.classYear}"
+                data-precision="${s.geo.precision}"><title>${escapeHtml(s.name)}</title></circle>`;
+        }).join('');
+
+        markerGroup.querySelectorAll('.signing-map-marker').forEach(circleEl => {
+            circleEl.addEventListener('mouseenter', () => { if (!signingMapPinnedEl) showSigningMapPlayerPopup(circleEl); });
+            circleEl.addEventListener('mouseleave', () => { if (!signingMapPinnedEl) hideSigningMapPopup(); });
+            circleEl.addEventListener('click', e => {
+                e.stopPropagation();
+                if (signingMapPinnedEl === circleEl) { hideSigningMapPopup(); return; }
+                signingMapPinnedEl = circleEl;
+                showSigningMapPlayerPopup(circleEl);
+            });
+        });
+    }
+
+    function populateRecruitingMapYearSelect(classes) {
+        const sel = document.getElementById('recruitingMapYearSelect');
+        if (!sel) return;
+        const current = sel.value || 'all';
+        const years = classes.map(c => c.classYear).slice().sort((a, b) => b - a);
+        sel.innerHTML = '<option value="all">All Classes</option>' +
+            years.map(y => `<option value="${y}">${toCalendarYear(y)}</option>`).join('');
+        sel.value = years.some(y => String(y) === current) ? current : 'all';
+    }
+
+    const recruitingMapPopupClose = document.getElementById('recruitingMapPopupClose');
+    if (recruitingMapPopupClose) recruitingMapPopupClose.addEventListener('click', hideSigningMapPopup);
+
+    const recruitingMapYearSelect = document.getElementById('recruitingMapYearSelect');
+    if (recruitingMapYearSelect) {
+        recruitingMapYearSelect.addEventListener('change', () => {
+            renderSigningMap(allRecruitingClasses, recruitingMapYearSelect.value);
         });
     }
 
@@ -3366,5 +3555,188 @@
         await loadNatAllAm();
         await loadConfAllAm();
         await loadAllAmSchools('national');
+    }
+
+    // ---- Coach Career Summary banner (top of Coaching Career) ----
+    // Coach name is deliberately not shown - the save's own Coach records
+    // don't have a usable field schema in the parsing library (unlike
+    // Player/Team, every field comes back unlabeled), so there's no
+    // reliable way to read it. "Head Coach" is used as a constant label
+    // instead of a "position" column in the timeline for the same reason:
+    // this app can only ever detect the user as Head Coach in the first
+    // place (that's literally how "my team" gets identified), so it never
+    // actually varies.
+    function recordStr(r) {
+        return r.ties > 0 ? `${r.wins}-${r.losses}-${r.ties}` : `${r.wins}-${r.losses}`;
+    }
+
+    function coachSummaryTimelineHtml(timeline) {
+        if (!timeline || !timeline.length) return '';
+        return timeline.map((block, i) => {
+            const isCurrent = i === timeline.length - 1;
+            const label = block.team ? block.team.name : `Team #${block.teamIndex}`;
+            const years = block.startYear === block.endYear
+                ? String(toCalendarYear(block.startYear))
+                : `${toCalendarYear(block.startYear)}–${toCalendarYear(block.endYear)}`;
+            const chip = `<span class="coach-summary-timeline-chip${isCurrent ? ' current' : ''}">${escapeHtml(label)} <span style="opacity:.75">${years}${isCurrent ? '-present' : ''}</span></span>`;
+            return i === 0 ? chip : `<span class="coach-summary-timeline-arrow">&rarr;</span>${chip}`;
+        }).join('');
+    }
+
+    function coachStatCard(icon, label, value, sub) {
+        return `
+            <div class="hero-stat-card">
+                <div class="hero-stat-icon">${icon}</div>
+                <div class="hero-stat-label">${label}</div>
+                <div class="hero-stat-value">${value}${sub ? `<small>${sub}</small>` : ''}</div>
+            </div>
+        `;
+    }
+
+    function renderCoachSummary(summary) {
+        const banner = document.getElementById('coachSummaryBanner');
+        if (!banner) return;
+        if (!summary || !summary.hasData) {
+            banner.classList.add('hidden');
+            return;
+        }
+        banner.classList.remove('hidden');
+
+        const team = summary.currentTeam;
+        const colorPrimary = (team && team.colorPrimary) || '#ff6b35';
+        const colorSecondary = (team && team.colorSecondary) || colorPrimary;
+        const bannerGradient = `linear-gradient(120deg, ${colorPrimary}66 0%, ${colorSecondary}33 55%, transparent 100%)`;
+
+        const hero = document.getElementById('coachSummaryHero');
+        if (hero) {
+            hero.style.backgroundImage = bannerGradient;
+            hero.style.borderLeftColor = colorPrimary;
+        }
+        const nameEl = document.getElementById('coachSummarySchoolName');
+        if (nameEl) nameEl.innerHTML = `🏈 ${team ? escapeHtml(team.name) : 'Unknown School'}`;
+        const timelineEl = document.getElementById('coachSummaryTimeline');
+        if (timelineEl) timelineEl.innerHTML = coachSummaryTimelineHtml(summary.timeline);
+
+        const statsEl = document.getElementById('coachSummaryStats');
+        if (!statsEl) return;
+        const nc = summary.nationalChampionships, cc = summary.conferenceChampionships;
+        statsEl.innerHTML = [
+            coachStatCard('🏆', 'Overall Record', recordStr(summary.overall), `${summary.overall.games} game${summary.overall.games === 1 ? '' : 's'}`),
+            coachStatCard('🏟️', 'Conference Record', recordStr(summary.conference)),
+            coachStatCard('🎟️', 'Bowl Record', recordStr(summary.bowl)),
+            coachStatCard('🏅', 'Playoff Record', recordStr(summary.playoff)),
+            coachStatCard('🥇', 'National Championships', nc.wins, nc.appearances ? `${nc.appearances} appearance${nc.appearances === 1 ? '' : 's'}` : null),
+            coachStatCard('🏆', 'Conference Championships', cc.wins, cc.appearances ? `${cc.appearances} appearance${cc.appearances === 1 ? '' : 's'}` : null),
+            coachStatCard('🌟', '1st Team All-Americans', summary.allAmericans.first),
+            coachStatCard('⭐', '2nd Team All-Americans', summary.allAmericans.second),
+            coachStatCard('🎓', 'Freshman All-Americans', summary.allAmericans.freshman),
+            coachStatCard('🎖️', 'Awards Won', summary.awardCount, summary.headCoachOfYearCount ? `${summary.headCoachOfYearCount}× Head Coach of the Year` : null)
+        ].join('');
+    }
+
+    async function loadCoachSummary() {
+        const loginPrompt = document.getElementById('coachSummaryLoginPrompt');
+        const banner = document.getElementById('coachSummaryBanner');
+        if (!loginPrompt || !banner) return;
+
+        try {
+            const res = await fetch('/api/coach-summary');
+            if (res.status === 401) {
+                loginPrompt.classList.remove('hidden');
+                banner.classList.add('hidden');
+                return;
+            }
+            loginPrompt.classList.add('hidden');
+            if (!res.ok) throw new Error('Failed to load coach summary (HTTP ' + res.status + ')');
+            renderCoachSummary(await res.json());
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    // ---- "Start a New Dynasty" reset (Coordinator Settings) ----
+    // Permanently deletes every accumulated history table for this account
+    // server-side (see lib/resetDynasty.js) - the frontend's job is just
+    // making that hard to trigger by accident: the confirm button stays
+    // disabled until the user types the exact confirmation phrase.
+    const RESET_CONFIRM_PHRASE = 'RESET';
+    const resetDynastyModal = document.getElementById('resetDynastyModal');
+    const resetConfirmInput = document.getElementById('resetConfirmInput');
+    const resetDynastyConfirmBtn = document.getElementById('resetDynastyConfirmBtn');
+    const resetDynastyStatus = document.getElementById('resetDynastyStatus');
+
+    function showResetDynastyModal() {
+        if (!resetDynastyModal) return;
+        if (resetConfirmInput) resetConfirmInput.value = '';
+        if (resetDynastyConfirmBtn) resetDynastyConfirmBtn.disabled = true;
+        if (resetDynastyStatus) resetDynastyStatus.textContent = '';
+        resetDynastyModal.classList.remove('hidden');
+        if (resetConfirmInput) resetConfirmInput.focus();
+    }
+    function hideResetDynastyModal() {
+        if (resetDynastyModal) resetDynastyModal.classList.add('hidden');
+    }
+
+    const startNewDynastyBtn = document.getElementById('startNewDynastyBtn');
+    if (startNewDynastyBtn) startNewDynastyBtn.addEventListener('click', showResetDynastyModal);
+
+    const startNewDynastyHomeBtn = document.getElementById('startNewDynastyHomeBtn');
+    if (startNewDynastyHomeBtn) startNewDynastyHomeBtn.addEventListener('click', showResetDynastyModal);
+
+    const resetDynastyModalClose = document.getElementById('resetDynastyModalClose');
+    const resetDynastyCancelBtn = document.getElementById('resetDynastyCancelBtn');
+    if (resetDynastyModalClose) resetDynastyModalClose.addEventListener('click', hideResetDynastyModal);
+    if (resetDynastyCancelBtn) resetDynastyCancelBtn.addEventListener('click', hideResetDynastyModal);
+    if (resetDynastyModal) resetDynastyModal.addEventListener('click', e => {
+        if (e.target === resetDynastyModal) hideResetDynastyModal(); // clicked the backdrop, not the card
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && resetDynastyModal && !resetDynastyModal.classList.contains('hidden')) hideResetDynastyModal();
+    });
+
+    if (resetConfirmInput) {
+        resetConfirmInput.addEventListener('input', () => {
+            if (resetDynastyConfirmBtn) resetDynastyConfirmBtn.disabled = resetConfirmInput.value !== RESET_CONFIRM_PHRASE;
+        });
+    }
+
+    if (resetDynastyConfirmBtn) {
+        resetDynastyConfirmBtn.addEventListener('click', async () => {
+            if (resetConfirmInput && resetConfirmInput.value !== RESET_CONFIRM_PHRASE) return;
+            resetDynastyConfirmBtn.disabled = true;
+            if (resetDynastyStatus) { resetDynastyStatus.textContent = 'Deleting…'; resetDynastyStatus.className = 'upload-status loading'; }
+
+            try {
+                const res = await fetch('/api/reset-dynasty', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ confirm: RESET_CONFIRM_PHRASE })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || `Reset failed (HTTP ${res.status})`);
+
+                hideResetDynastyModal();
+                const settingsStatus = document.getElementById('settingsSaveStatus');
+                if (settingsStatus) {
+                    settingsStatus.textContent = '✅ All dynasty history cleared - ready for a new one.';
+                    settingsStatus.className = 'upload-status success';
+                }
+
+                // Refresh every history view in place so the reset is
+                // visible immediately, without needing a page reload.
+                loadCoachingCareer();
+                loadCoachSummary();
+                loadRecruitingClasses();
+                loadNotablePlayers();
+                loadTop25();
+                loadConfStandings();
+                loadAwards();
+                loadAllAmericans();
+            } catch (err) {
+                console.error(err);
+                if (resetDynastyStatus) { resetDynastyStatus.textContent = err.message; resetDynastyStatus.className = 'upload-status error'; }
+                resetDynastyConfirmBtn.disabled = false;
+            }
+        });
     }
 })();

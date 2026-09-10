@@ -20,12 +20,14 @@ const {
 const { trackVisit, pruneOldVisits, VISITOR_COOKIE_NAME } = require('./lib/visitors');
 const { FREE_UPLOAD_LIMIT, countSuccessfulUploadsForVisitor } = require('./lib/uploadLimits');
 const { parseTeamsMeta, parseBowlsMeta, parseMyTeamGames } = require('./lib/parseSchoolRecords');
+const { parseConferences } = require('./lib/parseConferences');
 const { ingestDynastyRecords, LOCAL_DYNASTY_USER_ID } = require('./lib/dynastyIngest');
 const { getSchoolRecords, getBowlRecord, getPlayoffRecord, getBowlRecordsByName } = require('./lib/schoolRecordQueries');
 const { parseNationalTeamStats } = require('./lib/parseNationalTeamStats');
 const { computeTop25, computeConferenceStandings } = require('./lib/top25');
 const { ingestTop25Snapshot, getTop25Snapshot, getLatestTop25Snapshot, getAvailableTop25Snapshots } = require('./lib/top25Ingest');
 const { ingestRecruitingClass, getRecruitingClasses, getRecruitingCareerSummary, getRecruitingSchools } = require('./lib/recruitingClassIngest');
+const { geoProjectHometown } = require('./lib/signingMapGeo');
 const { parseNotablePlayers } = require('./lib/parseNotablePlayers');
 const { ingestNotablePlayers, getNotablePlayers, getNotablePlayerSchools } = require('./lib/notablePlayersIngest');
 const { parseAwards } = require('./lib/parseAwards');
@@ -38,6 +40,11 @@ const {
     ingestAllAmericans, getAllAmericanTeam, getAvailableAllAmericanYears,
     getAllAmericanConferences, getAllAmericanSchoolTotals
 } = require('./lib/allAmericansIngest');
+const { ingestCoachTenure } = require('./lib/coachTenureIngest');
+const { parseConferenceChampionships } = require('./lib/parseConferenceChampionships');
+const { ingestConferenceChampionships } = require('./lib/conferenceChampionshipsIngest');
+const { getCoachCareerSummary } = require('./lib/coachCareerSummary');
+const { resetDynastyData } = require('./lib/resetDynasty');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -312,7 +319,15 @@ app.get('/api/records/bowls-by-name', dynastyRecordsGate, (req, res) => {
 app.get('/api/records/recruiting-classes', dynastyRecordsGate, (req, res) => {
     try {
         const team = req.query.team != null ? Number(req.query.team) : null;
-        res.json(getRecruitingClasses(req.dynastyUserId, team));
+        const classes = getRecruitingClasses(req.dynastyUserId, team);
+        // Geo lookup is computed fresh on every request (cheap - a career is
+        // at most a few hundred signees) rather than stored, so improvements
+        // to the city gazetteer benefit every already-ingested class
+        // immediately instead of needing a re-upload to backfill.
+        classes.forEach(c => {
+            c.signees.forEach(s => { s.geo = geoProjectHometown(s.hometown, s.homeState); });
+        });
+        res.json(classes);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to load recruiting class history.', details: err.message });
@@ -519,6 +534,35 @@ app.get('/api/all-americans/schools', dynastyRecordsGate, (req, res) => {
     }
 });
 
+// ---- Coaching Career summary banner ----
+app.get('/api/coach-summary', dynastyRecordsGate, (req, res) => {
+    try {
+        res.json(getCoachCareerSummary(req.dynastyUserId));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load coach career summary.', details: err.message });
+    }
+});
+
+// "Start a New Dynasty" - permanently wipes every accumulated history table
+// for this account (see lib/resetDynasty.js for exactly what). Requires
+// { confirm: 'RESET' } in the body as a second safety check behind the
+// frontend's own typed-confirmation gate - a stray/malformed request (a
+// buggy retry, a browser extension, anything that isn't a deliberate,
+// confirmed click) can't trigger a real delete without that exact value.
+app.post('/api/reset-dynasty', dynastyRecordsGate, (req, res) => {
+    if (req.body.confirm !== 'RESET') {
+        return res.status(400).json({ error: 'Confirmation required.' });
+    }
+    try {
+        resetDynastyData(req.dynastyUserId);
+        res.json({ ok: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to reset dynasty data.', details: err.message });
+    }
+});
+
 // Blocks an anonymous visitor's 4th+ upload attempt, before multer even
 // reads the file off the wire - logged-in users (req.user set by apiGate,
 // which runs first) are exempt entirely. Mounted ahead of upload.single()
@@ -556,8 +600,19 @@ async function ingestDynastyRecordsBestEffort(franchise, userTeam, dynastyUserId
     try {
         const teamsMeta = await parseTeamsMeta(franchise);
         const bowlsMeta = await parseBowlsMeta(franchise);
-        const games = userTeam ? await parseMyTeamGames(franchise, userTeam.teamIndex) : [];
+        const { teamIndexToConference } = await parseConferences(franchise);
+        const games = userTeam ? await parseMyTeamGames(franchise, userTeam.teamIndex, teamIndexToConference) : [];
         ingestDynastyRecords(dynastyUserId, { teamsMeta, bowlsMeta, games });
+
+        // Coach tenure (which school this dynasty year) - cheap enough to
+        // fold in here rather than its own best-effort step, since it just
+        // needs SeasonInfo + the userTeam already in scope.
+        if (userTeam) {
+            const seasonInfoTable = franchise.tables.filter(t => t.name === 'SeasonInfo')[0];
+            await seasonInfoTable.readRecords();
+            const seasonInfo = seasonInfoTable.records.find(r => !r.isEmpty);
+            ingestCoachTenure(dynastyUserId, seasonInfo.CurrentYear, userTeam.teamIndex);
+        }
     } catch (err) {
         console.error('Coaching Career ingest failed (continuing without it):', err);
     }
@@ -600,7 +655,7 @@ async function ingestRecruitingClassBestEffort(franchise, userTeam, roster, dyna
 
         const signees = roster
             .filter(p => p.teamIndex === userTeam.teamIndex && p.schoolYear === 'Freshman')
-            .map(p => ({ name: p.name, position: p.position, stars: p.starsNum, overall: p.overall, homeState: p.homeState }));
+            .map(p => ({ name: p.name, position: p.position, stars: p.starsNum, overall: p.overall, homeState: p.homeState, hometown: p.hometown }));
 
         ingestRecruitingClass(dynastyUserId, { classYear: seasonInfo.CurrentYear, teamIndex: userTeam.teamIndex, signees });
     } catch (err) {
@@ -654,6 +709,19 @@ async function ingestAllAmericansBestEffort(franchise, dynastyUserId) {
     }
 }
 
+// Separate best-effort step, same pattern as the others. National in scope
+// (every conference's result), used by the Coaching Career summary to score
+// whichever school(s) the user has coached.
+async function ingestConferenceChampionshipsBestEffort(franchise, dynastyUserId) {
+    if (dynastyUserId == null) return;
+    try {
+        const result = await parseConferenceChampionships(franchise);
+        ingestConferenceChampionships(dynastyUserId, result.results);
+    } catch (err) {
+        console.error('Conference championships ingest failed (continuing without it):', err);
+    }
+}
+
 app.post('/api/upload', apiGate, checkUploadLimit, upload.single('saveFile'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded.' });
@@ -673,6 +741,7 @@ app.post('/api/upload', apiGate, checkUploadLimit, upload.single('saveFile'), as
         await ingestNotablePlayersBestEffort(franchise, userTeam, resolveDynastyUserId(req));
         await ingestAwardsBestEffort(franchise, resolveDynastyUserId(req));
         await ingestAllAmericansBestEffort(franchise, resolveDynastyUserId(req));
+        await ingestConferenceChampionshipsBestEffort(franchise, resolveDynastyUserId(req));
         // Most uploaders won't be logged in now that it's optional - fall
         // back to the anonymous visitor cookie (same one the unique-visitor
         // counter uses) so the admin usage dashboard doesn't go dark.
@@ -750,6 +819,7 @@ app.post('/api/refresh', localPathGate, async (req, res) => {
         await ingestNotablePlayersBestEffort(franchise, userTeam, resolveDynastyUserId(req));
         await ingestAwardsBestEffort(franchise, resolveDynastyUserId(req));
         await ingestAllAmericansBestEffort(franchise, resolveDynastyUserId(req));
+        await ingestConferenceChampionshipsBestEffort(franchise, resolveDynastyUserId(req));
         res.json({ count: recruits.length, recruits, rosterCount: roster.length, roster, userTeam });
     } catch (err) {
         console.error(err);

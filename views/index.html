@@ -96,6 +96,10 @@
                 <button id="pathSetupSkipBtn" class="link-btn">not now</button>
             </div>
         </div>
+
+        <div class="upload-panel-footer">
+            <button id="startNewDynastyHomeBtn" class="link-btn start-new-dynasty-link">🗑️ Started a new dynasty? Clear old history&hellip;</button>
+        </div>
     </section>
 
     <nav class="top-tabs">
@@ -371,6 +375,16 @@
                     <button id="refreshTargetsFromSettingsBtn" class="refresh-btn">🔄 Refresh Recruit Targets</button>
                     <button id="resetSettingsBtn" class="link-btn">Reset to defaults</button>
                     <span id="settingsSaveStatus" class="upload-status"></span>
+                </div>
+
+                <h2>⚠️ Danger Zone</h2>
+                <p class="leaderboard-hint">Coaching Career and National Landscape's history features (game log, Top 25, Conference Standings, Awards, All-Americans, Recruiting Classes, Best Players) accumulate across every upload on this account. If you've started a brand new dynasty, that old history will keep mixing in with the new one unless you clear it first.</p>
+                <div class="danger-zone-box">
+                    <div class="danger-zone-text">
+                        <strong>Start a New Dynasty</strong>
+                        <p>Permanently deletes every season of tracked history on this account. Your current recruiting board and roster (from your latest upload) aren't affected - only accumulated history. This cannot be undone.</p>
+                    </div>
+                    <button id="startNewDynastyBtn" class="danger-btn">🗑️ Start a New Dynasty&hellip;</button>
                 </div>
             </section>
         </div>
@@ -795,6 +809,24 @@
     </div>
 
     <div id="coachingCareerTab" class="tab-panel">
+        <div id="coachSummaryLoginPrompt" class="login-prompt-card hidden">
+            <h2>Log in to see your Coach Career Summary</h2>
+            <p>Like the rest of Coaching Career, this needs an account so your career record stays put across visits. Once you're logged in, just upload or refresh like normal.</p>
+            <div class="modal-actions">
+                <a href="/signup.html" class="refresh-btn">Sign Up</a>
+                <a href="/login.html" class="link-btn">Already have an account? Log In</a>
+            </div>
+        </div>
+
+        <section id="coachSummaryBanner" class="hidden">
+            <div id="coachSummaryHero" class="team-hero-banner">
+                <div class="team-hero-eyebrow">Head Coach</div>
+                <div id="coachSummarySchoolName" class="team-hero-name">&mdash;</div>
+                <div id="coachSummaryTimeline" class="coach-summary-timeline"></div>
+            </div>
+            <div id="coachSummaryStats" class="team-hero-stats"></div>
+        </section>
+
         <div class="sub-tabs">
             <button class="sub-tab-btn active" data-subtab="rivalriesRecordsSubTab">🏆 Rivalries &amp; Records</button>
             <button class="sub-tab-btn" data-subtab="recruitingClassesSubTab">📈 Recruiting Classes</button>
@@ -1160,6 +1192,25 @@
                             <tbody id="recruitingClassesBody"><tr><td colspan="5" class="empty-row">Upload a save file to see your recruiting class history.</td></tr></tbody>
                         </table>
                     </div>
+
+                    <h2>Signing Map</h2>
+                    <p class="leaderboard-hint">Every signee's hometown, colored by the school they signed with. Pick one class or view your whole career at once.</p>
+                    <div class="toolbar">
+                        <div class="toolbar-group">
+                            <label for="recruitingMapYearSelect">Class</label>
+                            <select id="recruitingMapYearSelect">
+                                <option value="all">All Classes</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="us-map-wrap">
+                        <svg id="recruitingSigningMap" viewBox="10.49 4.98 954.57 609.59" xmlns="http://www.w3.org/2000/svg"></svg>
+                        <div id="recruitingMapPopup" class="us-map-popup hidden">
+                            <button id="recruitingMapPopupClose" class="us-map-popup-close" aria-label="Close">&times;</button>
+                            <div id="recruitingMapPopupTitle" class="us-map-popup-title"></div>
+                            <div id="recruitingMapPopupBody" class="us-map-popup-body"></div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
@@ -1300,6 +1351,24 @@
         </section>
     </div>
     </main>
+</div>
+
+<div id="resetDynastyModal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <button id="resetDynastyModalClose" class="modal-close" aria-label="Close">&times;</button>
+        <div class="modal-icon">⚠️</div>
+        <h2>Start a New Dynasty?</h2>
+        <p class="modal-subhead">This permanently deletes every season of tracked history on this account &mdash; game log, Top 25, Conference Standings, Awards, All-Americans, Recruiting Classes, and Best Players. There's no undo.</p>
+        <div class="reset-confirm-field">
+            <label for="resetConfirmInput">Type <strong>RESET</strong> to confirm</label>
+            <input type="text" id="resetConfirmInput" autocomplete="off" placeholder="RESET">
+        </div>
+        <div class="modal-actions">
+            <button id="resetDynastyConfirmBtn" class="danger-btn" disabled>🗑️ Delete Everything</button>
+            <button id="resetDynastyCancelBtn" class="link-btn">Cancel</button>
+        </div>
+        <div id="resetDynastyStatus" class="upload-status"></div>
+    </div>
 </div>
 
 <div id="accountRequiredModal" class="modal-overlay hidden">
