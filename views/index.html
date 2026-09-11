@@ -141,6 +141,7 @@
             <button class="sub-tab-btn active" data-subtab="explorerSubTab">📋 Recruit Explorer</button>
             <button class="sub-tab-btn" data-subtab="classLandscapeSubTab">📊 Class Landscape</button>
             <button class="sub-tab-btn" data-subtab="targetsTab">🎯 Recruit Targets</button>
+            <button class="sub-tab-btn" data-subtab="myBoardTab">📌 My Board</button>
             <button class="sub-tab-btn" data-subtab="schemeFitTab">🧠 Scheme Fit</button>
             <button class="sub-tab-btn" data-subtab="settingsTab">⚙️ Coordinator Settings</button>
         </div>
@@ -352,6 +353,29 @@
 
                 <div id="targetsContainer">
                     <p class="empty-row">Upload a save file to see recruit targets.</p>
+                </div>
+            </section>
+        </div>
+
+        <div id="myBoardTab" class="sub-tab-panel">
+            <section class="averages-panel">
+                <h1 class="power-rankings-title">📌 My Board</h1>
+                <p class="leaderboard-hint power-rankings-hint">The recruits actually on your in-game recruiting board right now &mdash; not a suggestion list, straight from your own board in the save file, with the same Raw Rating and NIL Adj. Rating used everywhere else in the app.</p>
+
+                <details class="info-box">
+                    <summary>How this works &amp; why it matters</summary>
+                    <div class="info-box-body">
+                        <h4>What this page shows</h4>
+                        <p>Every recruit you've personally added to your board in-game &mdash; not the national recruit pool (see Recruit Explorer) and not this app's own suggestions (see Recruit Targets). If it's empty, your board is genuinely empty right now in the save (common right after Signing Day, before a new cycle's board is set) &mdash; upload or refresh again once you've added targets in-game.</p>
+                        <h4>Board Status</h4>
+                        <p><strong>&#9733;</strong> means you've favorited that recruit in-game. <strong>Offer</strong> shows the save's own scholarship offer status for that recruit. <strong>Committed</strong> means they've verbally committed to you (with the week they did) but haven't signed yet &mdash; still worth watching in case of a decommit, so they stay listed here instead of disappearing.</p>
+                        <h4>Hours &amp; NIL</h4>
+                        <p><strong>Hours This Wk</strong> is how many recruiting hours you've spent on that recruit this week. <strong>NIL Ask / Offer</strong> shows their expectation next to your current offer, so you can see the gap at a glance.</p>
+                    </div>
+                </details>
+
+                <div id="myBoardContainer">
+                    <p class="empty-row">Upload a save file to see your recruiting board.</p>
                 </div>
             </section>
         </div>

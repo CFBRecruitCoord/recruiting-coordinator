@@ -670,6 +670,8 @@ tbody tr:hover { background: rgba(79, 195, 247, 0.08); }
 .badge-bust { background: rgba(229,72,77,0.15); color: var(--bust); border: 1px solid rgba(229,72,77,0.4); }
 .badge-normal { background: rgba(107,118,136,0.15); color: var(--normal); border: 1px solid rgba(107,118,136,0.4); }
 
+.board-star { color: #ffbc1d; font-size: 15px; margin-right: 4px; }
+
 .stars { color: #f5b301; letter-spacing: 1px; }
 .stars .dim { color: #3a3f4d; }
 

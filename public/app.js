@@ -295,6 +295,7 @@
 
     let allRecruits = [];
     let allRosterPlayers = [];
+    let myRecruitingBoardRaw = [];
     let userTeamContext = null;
 
     // ---- Dynamic favicon ----
@@ -433,6 +434,7 @@
 
             allRecruits = data.recruits;
             allRosterPlayers = data.roster || [];
+            myRecruitingBoardRaw = data.myRecruitingBoard || [];
             userTeamContext = data.userTeam || null;
             updateFaviconForTeam(userTeamContext);
             recomputeEffectiveRatings();
@@ -447,6 +449,7 @@
             renderPowerRankings();
             renderRecruitTargets();
             renderSchemeFit();
+            renderMyBoard();
             hideLandingHero();
             loadCoachingCareer();
             loadCoachSummary();
@@ -561,6 +564,7 @@
 
             allRecruits = data.recruits;
             allRosterPlayers = data.roster || [];
+            myRecruitingBoardRaw = data.myRecruitingBoard || [];
             userTeamContext = data.userTeam || null;
             updateFaviconForTeam(userTeamContext);
             recomputeEffectiveRatings();
@@ -575,6 +579,7 @@
             renderPowerRankings();
             renderRecruitTargets();
             renderSchemeFit();
+            renderMyBoard();
             hideLandingHero();
             loadCoachingCareer();
             loadCoachSummary();
@@ -1837,6 +1842,83 @@
 
             <h2>Defensive Scheme Ranking</h2>
             <div class="scheme-fit-list">${defenseRanked.map((r, i) => schemeCard(r, i, currentDef)).join('')}</div>
+        `;
+    }
+
+    // ================= MY BOARD (Recruiting Coordinator tab) =================
+    // The save's own UserRecruitTarget table (see lib/parseMyRecruitingBoard.js)
+    // - recruits actually on the coach's in-game board, joined here against
+    // the already-loaded allRecruits by recruitIndex rather than carrying a
+    // second copy of every recruit's identity/rating fields over the wire.
+    const MY_BOARD_EMPTY_MSG = 'Your recruiting board is empty right now. Add recruits to your board in-game, then upload or refresh again to see them here.';
+
+    function formatEnumLabel(value) {
+        return value ? String(value).replace(/([a-z])([A-Z])/g, '$1 $2') : '';
+    }
+
+    function boardStatusHtml(entry) {
+        const parts = [];
+        if (entry.isFavorite) parts.push('<span class="board-star" title="Favorited">★</span>');
+        if (entry.committedWeek) {
+            parts.push(`<span class="badge badge-gem">Committed (Wk ${entry.committedWeek})</span>`);
+        } else if (entry.scholarshipStatus) {
+            parts.push(`<span class="badge badge-normal">${escapeHtml(formatEnumLabel(entry.scholarshipStatus))}</span>`);
+        }
+        return parts.join(' ') || '&mdash;';
+    }
+
+    function nilAskOfferHtml(entry) {
+        if (!entry.nilExpectation && !entry.currentNilOffer) return '&mdash;';
+        return `${Math.round(entry.nilExpectation || 0).toLocaleString()} / ${Math.round(entry.currentNilOffer || 0).toLocaleString()}`;
+    }
+
+    function renderMyBoard() {
+        const container = document.getElementById('myBoardContainer');
+        if (!container) return;
+
+        const recruitsByIndex = new Map(allRecruits.map(r => [r.recruitIndex, r]));
+        const rows = myRecruitingBoardRaw
+            .map(entry => {
+                const recruit = recruitsByIndex.get(entry.recruitIndex);
+                return recruit ? Object.assign({}, recruit, entry) : null;
+            })
+            .filter(Boolean)
+            .sort((a, b) => b.nilAdjustedRatingEffective - a.nilAdjustedRatingEffective);
+
+        if (!rows.length) {
+            container.innerHTML = `<p class="empty-row">${MY_BOARD_EMPTY_MSG}</p>`;
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="table-wrap">
+                <table id="myBoardTable">
+                    <thead>
+                        <tr>
+                            <th>Recruit Name</th><th>POS</th><th>State</th><th>Stars</th><th>OVR</th>
+                            <th>Gem Status</th><th>Raw Rating</th><th>NIL Adj. Rating</th>
+                            <th>Board Status</th><th>Hours This Wk</th><th>NIL Ask / Offer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map(r => `
+                            <tr>
+                                <td>${escapeHtml(r.name)}</td>
+                                <td>${escapeHtml(r.position)}</td>
+                                <td>${escapeHtml(r.homeState || '')}</td>
+                                <td>${starsHtml(r.starsNum)}</td>
+                                <td>${r.overall}</td>
+                                <td>${gemBadge(r.gem)}</td>
+                                <td class="${ratingClass(r.rawRatingEffective)}">${r.rawRatingEffective}</td>
+                                <td class="${ratingClass(r.nilAdjustedRatingEffective)}">${r.nilAdjustedRatingEffective}</td>
+                                <td>${boardStatusHtml(r)}</td>
+                                <td>${r.hoursSpentThisWeek || 0}</td>
+                                <td>${nilAskOfferHtml(r)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
         `;
     }
 
