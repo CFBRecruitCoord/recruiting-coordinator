@@ -450,6 +450,7 @@
             renderRecruitTargets();
             renderSchemeFit();
             renderMyBoard();
+            renderBestOfTheRest();
             hideLandingHero();
             loadCoachingCareer();
             loadCoachSummary();
@@ -580,6 +581,7 @@
             renderRecruitTargets();
             renderSchemeFit();
             renderMyBoard();
+            renderBestOfTheRest();
             hideLandingHero();
             loadCoachingCareer();
             loadCoachSummary();
@@ -1539,6 +1541,45 @@
         `).join('');
     }
 
+    // ================= BEST OF THE REST (Recruiting Coordinator tab) =================
+    // Reuses computeRecruitTargetCandidates()'s Program Movers formula
+    // (need/talent/NIL/interest/geography - the same balanced middle-ground
+    // score, not Day One's 4-5-star gate or Foundational's NIL-heavy lean)
+    // rather than inventing a second scoring system, narrowed to recruits
+    // with zero scholarship offers from anyone (totalScholarshipOffers,
+    // straight off the save's own Recruit record - see lib/parseRecruits.js).
+    // Specialists are already excluded upstream by that same function.
+    const BEST_OF_REST_LIMIT = 20;
+
+    function computeBestOfTheRestCandidates() {
+        return computeRecruitTargetCandidates()
+            .filter(c => (c.recruit.totalScholarshipOffers || 0) === 0)
+            .sort((a, b) => b.programMoverScore - a.programMoverScore)
+            .slice(0, BEST_OF_REST_LIMIT);
+    }
+
+    function renderBestOfTheRest() {
+        const container = document.getElementById('bestOfRestContainer');
+        if (!container) return;
+
+        if (!userTeamContext) {
+            container.innerHTML = '<p class="empty-row">No human-controlled team detected in this save - Best of the Rest needs to know which program to build for.</p>';
+            return;
+        }
+        if (!allRecruits.length) {
+            container.innerHTML = '<p class="empty-row">Upload a save file to see the best zero-offer recruits.</p>';
+            return;
+        }
+
+        const candidates = computeBestOfTheRestCandidates();
+        if (!candidates.length) {
+            container.innerHTML = '<p class="empty-row">No zero-offer recruits found right now. Early in a recruiting cycle this list can be empty since offers have not gone out yet - check back as the cycle progresses.</p>';
+            return;
+        }
+
+        container.innerHTML = `<div class="targets-list">${candidates.map((c, i) => targetCard(c, i + 1)).join('')}</div>`;
+    }
+
     // Shared by the "Refresh Recruit Targets" button on both this tab and
     // the Coordinator Settings tab - saves whatever's currently selected
     // (even if the user hasn't hit "Save Settings" yet) so a reload right
@@ -1546,6 +1587,7 @@
     function refreshRecruitTargetsFromSettings(statusEl) {
         saveSettingsToStorage(coordinatorSettings);
         renderRecruitTargets();
+        renderBestOfTheRest();
         if (statusEl) {
             statusEl.textContent = 'Recruit Targets refreshed.';
             statusEl.className = 'upload-status success';
