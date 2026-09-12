@@ -637,13 +637,16 @@ thead th {
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    cursor: pointer;
     user-select: none;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
 }
 
-thead th:hover { color: var(--accent-2); }
+/* Only headers wired up to actually sort (data-key) look clickable - a
+   plain <th> (e.g. My Board's composite Board Status/NIL Ask-Offer
+   columns) shouldn't invite a click that does nothing. */
+thead th[data-key] { cursor: pointer; }
+thead th[data-key]:hover { color: var(--accent-2); }
 thead th.sorted-asc::after { content: " ▲"; color: var(--accent); }
 thead th.sorted-desc::after { content: " ▼"; color: var(--accent); }
 

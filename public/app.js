@@ -1922,6 +1922,16 @@
         return `${Math.round(entry.nilExpectation || 0).toLocaleString()} / ${Math.round(entry.currentNilOffer || 0).toLocaleString()}`;
     }
 
+    // Sortable the same way as Recruit Explorer/Transfer Explorer (click a
+    // header, click again to flip direction) - defaults to NIL Adj. Rating
+    // since that was this table's original fixed sort. The table body is
+    // rebuilt from scratch on every render (see renderMyBoard), so a single
+    // delegated click listener on the container (attached once, below)
+    // handles header clicks rather than re-binding per-render.
+    let myBoardSortKey = 'nilAdjustedRating';
+    let myBoardSortDir = 'desc';
+    const MY_BOARD_SORTABLE_KEYS = new Set(['name', 'position', 'homeState', 'starsNum', 'overall', 'gem', 'rawRating', 'nilAdjustedRating', 'hoursSpentThisWeek']);
+
     function renderMyBoard() {
         const container = document.getElementById('myBoardContainer');
         if (!container) return;
@@ -1932,22 +1942,38 @@
                 const recruit = recruitsByIndex.get(entry.recruitIndex);
                 return recruit ? Object.assign({}, recruit, entry) : null;
             })
-            .filter(Boolean)
-            .sort((a, b) => b.nilAdjustedRatingEffective - a.nilAdjustedRatingEffective);
+            .filter(Boolean);
 
         if (!rows.length) {
             container.innerHTML = `<p class="empty-row">${MY_BOARD_EMPTY_MSG}</p>`;
             return;
         }
 
+        const effectiveSortKey = myBoardSortKey === 'rawRating' ? 'rawRatingEffective'
+            : myBoardSortKey === 'nilAdjustedRating' ? 'nilAdjustedRatingEffective'
+            : myBoardSortKey;
+        rows.sort((a, b) => {
+            let av = a[effectiveSortKey], bv = b[effectiveSortKey];
+            if (typeof av === 'string') av = av.toLowerCase();
+            if (typeof bv === 'string') bv = bv.toLowerCase();
+            if (av < bv) return myBoardSortDir === 'asc' ? -1 : 1;
+            if (av > bv) return myBoardSortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        const th = (key, label) => {
+            const cls = key === myBoardSortKey ? ` class="sorted-${myBoardSortDir}"` : '';
+            return `<th data-key="${key}"${cls}>${label}</th>`;
+        };
+
         container.innerHTML = `
             <div class="table-wrap">
                 <table id="myBoardTable">
                     <thead>
                         <tr>
-                            <th>Recruit Name</th><th>POS</th><th>State</th><th>Stars</th><th>OVR</th>
-                            <th>Gem Status</th><th>Raw Rating</th><th>NIL Adj. Rating</th>
-                            <th>Board Status</th><th>Hours This Wk</th><th>NIL Ask / Offer</th>
+                            ${th('name', 'Recruit Name')}${th('position', 'POS')}${th('homeState', 'State')}${th('starsNum', 'Stars')}${th('overall', 'OVR')}
+                            ${th('gem', 'Gem Status')}${th('rawRating', 'Raw Rating')}${th('nilAdjustedRating', 'NIL Adj. Rating')}
+                            <th>Board Status</th>${th('hoursSpentThisWeek', 'Hours This Wk')}<th>NIL Ask / Offer</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1970,6 +1996,26 @@
                 </table>
             </div>
         `;
+    }
+
+    // Delegated (not re-bound per-render, since renderMyBoard rebuilds the
+    // whole table including <thead> every time) - a click anywhere that
+    // bubbles up to a sortable header re-sorts and re-renders in place.
+    const myBoardContainerEl = document.getElementById('myBoardContainer');
+    if (myBoardContainerEl) {
+        myBoardContainerEl.addEventListener('click', e => {
+            const th = e.target.closest('th[data-key]');
+            if (!th || !myBoardContainerEl.contains(th)) return;
+            const key = th.dataset.key;
+            if (!MY_BOARD_SORTABLE_KEYS.has(key)) return;
+            if (myBoardSortKey === key) {
+                myBoardSortDir = myBoardSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                myBoardSortKey = key;
+                myBoardSortDir = (key === 'name' || key === 'position' || key === 'homeState' || key === 'gem') ? 'asc' : 'desc';
+            }
+            renderMyBoard();
+        });
     }
 
     function getDefaultSettings() {
