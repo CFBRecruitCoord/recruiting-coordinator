@@ -605,8 +605,10 @@ body {
 }
 
 /* When enabled, blurs the OVR/SPD columns so raw ratings don't bias manual
-   scouting - on by default every time the page loads (see app.js). */
-#recruitTable.blur-ratings td.blur-target {
+   scouting - on by default every time the page loads (see app.js). Class
+   selector (not ID) so both Recruit Explorer and Transfer Explorer's
+   tables share it. */
+.blur-ratings td.blur-target {
     filter: blur(6px);
     user-select: none;
 }

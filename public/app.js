@@ -296,6 +296,7 @@
     let allRecruits = [];
     let allRosterPlayers = [];
     let myRecruitingBoardRaw = [];
+    let allTransfers = [];
     let userTeamContext = null;
 
     // ---- Dynamic favicon ----
@@ -435,6 +436,7 @@
             allRecruits = data.recruits;
             allRosterPlayers = data.roster || [];
             myRecruitingBoardRaw = data.myRecruitingBoard || [];
+            allTransfers = data.transfers || [];
             userTeamContext = data.userTeam || null;
             updateFaviconForTeam(userTeamContext);
             recomputeEffectiveRatings();
@@ -442,6 +444,7 @@
             resultsPanel.classList.remove('hidden');
             populateFilterOptions();
             applyFiltersAndSort();
+            renderTransferExplorer();
             computeAndRenderAverages();
             renderMatrixTable();
             renderRosterTable();
@@ -566,6 +569,7 @@
             allRecruits = data.recruits;
             allRosterPlayers = data.roster || [];
             myRecruitingBoardRaw = data.myRecruitingBoard || [];
+            allTransfers = data.transfers || [];
             userTeamContext = data.userTeam || null;
             updateFaviconForTeam(userTeamContext);
             recomputeEffectiveRatings();
@@ -573,6 +577,7 @@
             resultsPanel.classList.remove('hidden');
             populateFilterOptions();
             applyFiltersAndSort();
+            renderTransferExplorer();
             computeAndRenderAverages();
             renderMatrixTable();
             renderRosterTable();
@@ -1239,7 +1244,10 @@
     // Recruit Targets' own gemAdj term) sees a consistent, current value.
     function recomputeEffectiveRatings() {
         const ignore = coordinatorSettings.ignoreGemBustStatus;
-        allRecruits.forEach(r => {
+        // Transfers share the exact same rating shape (see
+        // lib/parseRecruits.js's shared parseRecruitPool engine), so the
+        // same pass covers both without a second copy of this loop.
+        [...allRecruits, ...allTransfers].forEach(r => {
             r.rawRatingEffective = ignore ? +(r.rawRating - (r.gemBonus || 0)).toFixed(2) : r.rawRating;
             r.nilAdjustedRatingEffective = +(r.rawRatingEffective + r.nilAdjustment).toFixed(2);
         });
@@ -2285,6 +2293,188 @@
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    }
+
+    // ================= TRANSFER EXPLORER =================
+    // A near-duplicate of the Recruit Explorer filtering/sorting/pagination
+    // logic above, kept separate rather than generalized into one shared
+    // engine - the transfer pool is a genuinely different dataset (its own
+    // Raw Rating/NIL Adj. Rating baselines, no previous-school data,
+    // frequently empty depending on where the save is in its season) with
+    // its own DOM elements, and duplicating this fairly mechanical logic is
+    // simpler and safer than threading two datasets through one shared,
+    // parameterized table engine.
+    let filteredSortedTransfers = [];
+    let transferCurrentPage = 0;
+    let transferSortKey = 'nilAdjustedRating';
+    let transferSortDir = 'desc';
+
+    const transferResultsPanel = document.getElementById('transferResultsPanel');
+    const transferRangeSelect = document.getElementById('transferRangeSelect');
+    const transferPosFilter = document.getElementById('transferPosFilter');
+    const transferStarFilter = document.getElementById('transferStarFilter');
+    const transferStateFilter = document.getElementById('transferStateFilter');
+    const transferSchoolFilter = document.getElementById('transferSchoolFilter');
+    const transferSearchBox = document.getElementById('transferSearchBox');
+    const transferBlurToggle = document.getElementById('transferBlurToggle');
+    const transferResultCount = document.getElementById('transferResultCount');
+    const transferTable = document.getElementById('transferTable');
+    const transferTableBody = document.getElementById('transferTableBody');
+    const transferPrevPageBtn = document.getElementById('transferPrevPage');
+    const transferNextPageBtn = document.getElementById('transferNextPage');
+    const transferPagerLabel = document.getElementById('transferPagerLabel');
+    const transferEmptyState = document.getElementById('transferEmptyState');
+
+    function populateTransferFilterOptions() {
+        const positions = [...new Set(allTransfers.map(r => r.position))].sort();
+        transferPosFilter.innerHTML = '<option value="">All</option>' +
+            positions.map(p => `<option value="${p}">${p}</option>`).join('');
+
+        const states = [...new Set(allTransfers.map(r => r.homeState).filter(Boolean))].sort();
+        transferStateFilter.innerHTML = '<option value="">All</option>' +
+            states.map(s => `<option value="${s}">${splitCamel(s)}</option>`).join('');
+
+        const schools = [...new Set(allTransfers.flatMap(r => r.interestedSchools || []))].sort();
+        transferSchoolFilter.innerHTML = '<option value="">Any School</option>' +
+            schools.map(s => `<option value="${escapeAttr(s)}">${s}</option>`).join('');
+    }
+
+    if (transferPosFilter) {
+        [transferPosFilter, transferStarFilter, transferStateFilter, transferSchoolFilter].forEach(el => el.addEventListener('change', () => {
+            transferCurrentPage = 0;
+            applyTransferFiltersAndSort();
+        }));
+        transferSearchBox.addEventListener('input', () => {
+            transferCurrentPage = 0;
+            applyTransferFiltersAndSort();
+        });
+        transferRangeSelect.addEventListener('change', () => {
+            transferCurrentPage = parseInt(transferRangeSelect.value, 10);
+            renderTransferTable();
+        });
+        transferPrevPageBtn.addEventListener('click', () => {
+            if (transferCurrentPage > 0) { transferCurrentPage--; transferRangeSelect.value = transferCurrentPage; renderTransferTable(); }
+        });
+        transferNextPageBtn.addEventListener('click', () => {
+            const maxPage = Math.max(0, Math.ceil(filteredSortedTransfers.length / PAGE_SIZE) - 1);
+            if (transferCurrentPage < maxPage) { transferCurrentPage++; transferRangeSelect.value = transferCurrentPage; renderTransferTable(); }
+        });
+        document.querySelectorAll('#transferTable thead th').forEach(th => {
+            th.addEventListener('click', () => {
+                const key = th.dataset.key;
+                if (transferSortKey === key) {
+                    transferSortDir = transferSortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    transferSortKey = key;
+                    transferSortDir = (key === 'name' || key === 'position' || key === 'homeState' || key === 'gem') ? 'asc' : 'desc';
+                }
+                transferCurrentPage = 0;
+                applyTransferFiltersAndSort();
+            });
+        });
+        transferBlurToggle.addEventListener('change', applyTransferBlurState);
+    }
+
+    function applyTransferFiltersAndSort() {
+        const pos = transferPosFilter.value;
+        const star = transferStarFilter.value;
+        const state = transferStateFilter.value;
+        const school = transferSchoolFilter.value;
+        const search = transferSearchBox.value.trim().toLowerCase();
+
+        filteredSortedTransfers = allTransfers.filter(r => {
+            if (pos && r.position !== pos) return false;
+            if (star && String(r.starsNum) !== star) return false;
+            if (state && r.homeState !== state) return false;
+            if (school && !(r.interestedSchools || []).includes(school)) return false;
+            if (search && !r.name.toLowerCase().includes(search)) return false;
+            return true;
+        });
+
+        const effectiveSortKey = transferSortKey === 'rawRating' ? 'rawRatingEffective'
+            : transferSortKey === 'nilAdjustedRating' ? 'nilAdjustedRatingEffective'
+            : transferSortKey;
+        filteredSortedTransfers.sort((a, b) => {
+            let av = a[effectiveSortKey], bv = b[effectiveSortKey];
+            if (typeof av === 'string') av = av.toLowerCase();
+            if (typeof bv === 'string') bv = bv.toLowerCase();
+            if (av < bv) return transferSortDir === 'asc' ? -1 : 1;
+            if (av > bv) return transferSortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        buildTransferRangeOptions();
+        renderTransferTable();
+    }
+
+    function buildTransferRangeOptions() {
+        const total = filteredSortedTransfers.length;
+        const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+        const options = [];
+        for (let i = 0; i < pageCount; i++) {
+            const start = i * PAGE_SIZE + 1;
+            const end = Math.min(total, (i + 1) * PAGE_SIZE);
+            const label = i === 0 ? `Top 25 (${start}-${end})` : `${start}-${end}`;
+            options.push(`<option value="${i}">${label}</option>`);
+        }
+        transferRangeSelect.innerHTML = options.join('');
+        if (transferCurrentPage >= pageCount) transferCurrentPage = pageCount - 1;
+        transferRangeSelect.value = transferCurrentPage;
+    }
+
+    function renderTransferTable() {
+        const start = transferCurrentPage * PAGE_SIZE;
+        const pageItems = filteredSortedTransfers.slice(start, start + PAGE_SIZE);
+
+        transferTableBody.innerHTML = pageItems.map(r => `
+            <tr>
+                <td class="rank-cell">#${r.rank}</td>
+                <td class="name-cell" title="${escapeHtml((r.interestedSchools || []).join(', ') || 'No school interest data')}">${escapeHtml(r.name)}</td>
+                <td>${r.position}</td>
+                <td>${splitCamel(r.homeState || '')}</td>
+                <td>${starsHtml(r.starsNum)}</td>
+                <td class="blur-target">${r.overall}</td>
+                <td class="blur-target">${r.speed}</td>
+                <td class="blur-target">${r.nil}</td>
+                <td>${gemBadge(r.gem)}</td>
+                <td class="rating-cell ${ratingClass(r.rawRatingEffective)}">${r.rawRatingEffective.toFixed(2)}</td>
+                <td class="rating-cell ${ratingClass(r.nilAdjustedRatingEffective)}">${r.nilAdjustedRatingEffective.toFixed(2)}</td>
+            </tr>
+        `).join('');
+
+        document.querySelectorAll('#transferTable thead th').forEach(th => {
+            th.classList.remove('sorted-asc', 'sorted-desc');
+            if (th.dataset.key === transferSortKey) th.classList.add(transferSortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+        });
+
+        transferResultCount.textContent = `${filteredSortedTransfers.length} transfer${filteredSortedTransfers.length === 1 ? '' : 's'} matched`;
+
+        const pageCount = Math.max(1, Math.ceil(filteredSortedTransfers.length / PAGE_SIZE));
+        transferPagerLabel.textContent = `Page ${transferCurrentPage + 1} of ${pageCount}`;
+        transferPrevPageBtn.disabled = transferCurrentPage === 0;
+        transferNextPageBtn.disabled = transferCurrentPage >= pageCount - 1;
+        transferRangeSelect.value = transferCurrentPage;
+    }
+
+    function applyTransferBlurState() {
+        if (transferTable) transferTable.classList.toggle('blur-ratings', transferBlurToggle.checked);
+    }
+    if (transferBlurToggle) applyTransferBlurState();
+
+    // Called after every upload/refresh. Shows the "portal hasn't opened
+    // yet" message instead of the results panel when there's nothing to
+    // show, rather than an always-visible empty table with zero rows.
+    function renderTransferExplorer() {
+        if (!transferResultsPanel) return;
+        if (!allTransfers.length) {
+            transferResultsPanel.classList.add('hidden');
+            transferEmptyState.classList.remove('hidden');
+            return;
+        }
+        transferEmptyState.classList.add('hidden');
+        transferResultsPanel.classList.remove('hidden');
+        populateTransferFilterOptions();
+        applyTransferFiltersAndSort();
     }
 
     // ================= ADMIN TAB =================

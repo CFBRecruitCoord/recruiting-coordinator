@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { FranchiseFile } = require('madden-franchise');
-const { parseRecruits } = require('./lib/parseRecruits');
+const { parseRecruits, parseTransfers } = require('./lib/parseRecruits');
 const { parseMyRecruitingBoard } = require('./lib/parseMyRecruitingBoard');
 const { parseRosterLandscape } = require('./lib/parseRosterLandscape');
 const { parseUserTeamContext } = require('./lib/parseUserTeamContext');
@@ -742,6 +742,12 @@ app.post('/api/upload', apiGate, checkUploadLimit, upload.single('saveFile'), as
             console.error('My Recruiting Board parse failed (continuing without it):', err);
             return [];
         });
+        // Empty before the transfer portal opens for the season - a real,
+        // expected state (see lib/parseRecruits.js), not an error.
+        const transfers = await parseTransfers(franchise).catch(err => {
+            console.error('Transfer parse failed (continuing without it):', err);
+            return [];
+        });
         await ingestDynastyRecordsBestEffort(franchise, userTeam, resolveDynastyUserId(req));
         await ingestTop25BestEffort(franchise, resolveDynastyUserId(req));
         await ingestRecruitingClassBestEffort(franchise, userTeam, roster, resolveDynastyUserId(req));
@@ -765,7 +771,7 @@ app.post('/api/upload', apiGate, checkUploadLimit, upload.single('saveFile'), as
         // attempt to get blocked by checkUploadLimit above. null for a
         // logged-in user, who has no limit to warn about.
         const freeUploadInfo = req.user ? null : { used: countSuccessfulUploadsForVisitor(visitorId), limit: FREE_UPLOAD_LIMIT };
-        res.json({ count: recruits.length, recruits, rosterCount: roster.length, roster, userTeam, myRecruitingBoard, freeUploadInfo });
+        res.json({ count: recruits.length, recruits, rosterCount: roster.length, roster, userTeam, myRecruitingBoard, transfers, freeUploadInfo });
     } catch (err) {
         console.error(err);
         recordUploadEvent({
@@ -824,6 +830,10 @@ app.post('/api/refresh', localPathGate, async (req, res) => {
             console.error('My Recruiting Board parse failed (continuing without it):', err);
             return [];
         });
+        const transfers = await parseTransfers(franchise).catch(err => {
+            console.error('Transfer parse failed (continuing without it):', err);
+            return [];
+        });
         await ingestDynastyRecordsBestEffort(franchise, userTeam, resolveDynastyUserId(req));
         await ingestTop25BestEffort(franchise, resolveDynastyUserId(req));
         await ingestRecruitingClassBestEffort(franchise, userTeam, roster, resolveDynastyUserId(req));
@@ -831,7 +841,7 @@ app.post('/api/refresh', localPathGate, async (req, res) => {
         await ingestAwardsBestEffort(franchise, resolveDynastyUserId(req));
         await ingestAllAmericansBestEffort(franchise, resolveDynastyUserId(req));
         await ingestConferenceChampionshipsBestEffort(franchise, resolveDynastyUserId(req));
-        res.json({ count: recruits.length, recruits, rosterCount: roster.length, roster, userTeam, myRecruitingBoard });
+        res.json({ count: recruits.length, recruits, rosterCount: roster.length, roster, userTeam, myRecruitingBoard, transfers });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to refresh from save file.', details: err.message });

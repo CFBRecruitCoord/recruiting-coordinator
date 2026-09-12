@@ -139,6 +139,7 @@
     <div id="dynastyRecruitingTab" class="tab-panel active">
         <div class="sub-tabs">
             <button class="sub-tab-btn active" data-subtab="explorerSubTab">📋 Recruit Explorer</button>
+            <button class="sub-tab-btn" data-subtab="transferExplorerSubTab">🔄 Transfer Explorer</button>
             <button class="sub-tab-btn" data-subtab="classLandscapeSubTab">📊 Class Landscape</button>
             <button class="sub-tab-btn" data-subtab="targetsTab">🎯 Recruit Targets</button>
             <button class="sub-tab-btn" data-subtab="myBoardTab">📌 My Board</button>
@@ -243,6 +244,95 @@
                     <button id="nextPage">Next 25 &rarr;</button>
                 </div>
             </section>
+        </div>
+
+        <div id="transferExplorerSubTab" class="sub-tab-panel">
+            <details class="info-box">
+                <summary>How this works &amp; why it matters</summary>
+                <div class="info-box-body">
+                    <h4>What this page shows</h4>
+                    <p>Every player currently in the transfer portal, ranked and rated the same way as Recruit Explorer &mdash; except Raw Rating and NIL Adj. Rating here are computed against <strong>other transfers only</strong>, not high school recruits, since transfers are a different population (already college-tested, different NIL market) that shouldn't be judged against incoming freshmen.</p>
+                    <p>The transfer portal doesn't open until partway through a season &mdash; if this list is empty, it's not broken, the portal just hasn't opened yet in your save. Upload or refresh again once it has.</p>
+
+                    <h4>What's different from Recruit Explorer</h4>
+                    <ul>
+                        <li>Previous school isn't available &mdash; the save doesn't expose which team a transfer is leaving, only that they're in the portal</li>
+                        <li>Gem/Bust scouting doesn't seem to apply to transfers the same way (every transfer currently grades as "Normal"), so don't read too much into that column here</li>
+                        <li>Class shown is their <strong>incoming</strong> class (e.g. a rising junior transferring in still shows as Junior), same as the game's own portal listing</li>
+                    </ul>
+                </div>
+            </details>
+
+            <section class="results-panel hidden" id="transferResultsPanel">
+                <div class="toolbar">
+                    <div class="toolbar-group">
+                        <label for="transferRangeSelect">Showing</label>
+                        <select id="transferRangeSelect"></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="transferPosFilter">Position</label>
+                        <select id="transferPosFilter"><option value="">All</option></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="transferStarFilter">Stars</label>
+                        <select id="transferStarFilter">
+                            <option value="">All</option>
+                            <option value="5">5★</option>
+                            <option value="4">4★</option>
+                            <option value="3">3★</option>
+                            <option value="2">2★</option>
+                            <option value="1">1★</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="transferStateFilter">State</label>
+                        <select id="transferStateFilter"><option value="">All</option></select>
+                    </div>
+                    <div class="toolbar-group">
+                        <label for="transferSchoolFilter">Interested In</label>
+                        <select id="transferSchoolFilter"><option value="">Any School</option></select>
+                    </div>
+                    <div class="toolbar-group search-group">
+                        <label for="transferSearchBox">Search</label>
+                        <input type="text" id="transferSearchBox" placeholder="Transfer name...">
+                    </div>
+                    <label class="toolbar-group blur-toggle-group toggle-switch-label" for="transferBlurToggle">
+                        <span class="toggle-switch-text">Blur OVR / SPD</span>
+                        <input type="checkbox" id="transferBlurToggle" checked>
+                        <span class="toggle-track" aria-hidden="true"></span>
+                    </label>
+                    <div class="toolbar-group result-count" id="transferResultCount"></div>
+                </div>
+
+                <div class="table-wrap">
+                    <table id="transferTable">
+                        <thead>
+                            <tr>
+                                <th data-key="rank">National Rank</th>
+                                <th data-key="name">Player Name</th>
+                                <th data-key="position">POS</th>
+                                <th data-key="homeState">State</th>
+                                <th data-key="starsNum">Stars</th>
+                                <th data-key="overall">OVR</th>
+                                <th data-key="speed">SPD</th>
+                                <th data-key="nil">NIL</th>
+                                <th data-key="gem">Gem Status</th>
+                                <th data-key="rawRating">Raw Rating</th>
+                                <th data-key="nilAdjustedRating">NIL Adj. Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transferTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="pager">
+                    <button id="transferPrevPage">&larr; Prev 25</button>
+                    <span id="transferPagerLabel"></span>
+                    <button id="transferNextPage">Next 25 &rarr;</button>
+                </div>
+            </section>
+
+            <p id="transferEmptyState" class="empty-row hidden">No one's in the transfer portal yet in this save &mdash; check back once the portal opens later in the season.</p>
         </div>
 
         <div id="classLandscapeSubTab" class="sub-tab-panel">
